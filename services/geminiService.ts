@@ -33,10 +33,14 @@ const executeWithAutoRouter = async (
     let attempts = 0;
     const modelsTried = new Set<string>();
     
+    if (!ai) {
+        throw new Error("API_KEY_MISSING: Gemini API Key is missing. AI features are disabled.");
+    }
+    
     while (attempts <= retries) {
         try {
             const config = getConfig(currentModel, thinkingBudget);
-            return await ai!.models.generateContent({
+            return await ai.models.generateContent({
                 model: currentModel.id,
                 contents: prompt,
                 config: config
@@ -49,7 +53,13 @@ const executeWithAutoRouter = async (
                                  error.message?.toLowerCase().includes('resource_exhausted') ||
                                  error.status === 503 ||
                                  error.code === 503;
+            
+            const isNetworkError = error.name === 'TypeError' && error.message === 'Failed to fetch';
                                  
+            if (isNetworkError) {
+                throw new Error("NETWORK_ERROR: Attempted to connect to Gemini but the network request failed.");
+            }
+
             if (isQuotaError) {
                 modelsTried.add(currentModel.id);
                 console.warn(`Model ${currentModel.id} hit rate limit or unavailable. Finding fallback...`);
@@ -71,11 +81,11 @@ const executeWithAutoRouter = async (
                     attempts++;
                 }
             } else {
-                throw error;
+                throw new Error(`API_ERROR: Model returned an unexpected server error: ${error.message || 'Unknown'}`);
             }
         }
     }
-    throw new Error("Max retries exceeded across all models.");
+    throw new Error("EXHAUSTED: Max retries exceeded across all models. The AI service is currently hammered.");
 };
 
 const parseResponse = (text: string | undefined): Site[] => {
@@ -88,7 +98,7 @@ const parseResponse = (text: string | undefined): Site[] => {
     const parsedData = JSON.parse(cleanText);
     
     if (!Array.isArray(parsedData)) {
-        return [];
+        throw new Error("PARSING_ERROR: AI returned valid JSON, but it was not an array of sites.");
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,9 +107,12 @@ const parseResponse = (text: string | undefined): Site[] => {
       id: generateId(), // Use safe generator
       category: Object.values(Category).includes(item.category) ? item.category : Category.MYSTERY
     }));
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message && error.message.includes("PARSING_ERROR")) {
+        throw error;
+    }
     console.error("Failed to parse Gemini response", error);
-    return [];
+    throw new Error("PARSING_ERROR: Could not extract valid JSON from the AI response.");
   }
 };
 
@@ -127,11 +140,13 @@ export const fetchRecommendations = async (
     thinkingBudget: number = 0,
     aesthetic: Aesthetic,
     timeEra: TimeEra,
-    count: number = 3
+    count: number = 3,
+    tagContext?: string | null
 ): Promise<Site[]> => {
   if (!ai) return [];
 
   const categoryPrompt = category === Category.ALL ? "any category" : `the category '${category}'`;
+  const tagPrompt = tagContext ? `CONSTRAINT: Must be highly relevant to the concept or tag "${tagContext}".` : "";
   
   // Time Travel Logic
   const timeConstraint = timeEra.id === 'all' 
@@ -139,15 +154,27 @@ export const fetchRecommendations = async (
     : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era. YOU MUST FOLLOW THIS ERA CONSTRAINT.`;
 
   const prompt = `
+    SYSTEM PERSONA INITIALIZATION:
+    =================================
     ${persona.promptModifier}
+    =================================
+
+    AESTHETIC & TIMELINE DIRECTIVES:
+    =================================
     ${aesthetic.promptModifier}
-    STRICT MANDATE: Return sites that explicitly match the requested mood or timeline.
     ${timeConstraint}
+    ${tagPrompt}
+    =================================
     
-    Find ${count} REAL, OBSCURE websites in ${categoryPrompt}.
-    Rules: Must be real/online. No mainstream sites.
+    TASK FOREGROUNDING:
+    You are NOT an AI assistant. You are exactly the persona described above inside the SYSTEM PERSONA INITIALIZATION. You must find ${count} REAL, OBSCURE websites in ${categoryPrompt} that perfectly align with your twisted, specific worldview and the demanded aesthetic.
     
-    Return JSON array in \`\`\`json:
+    Rules: 
+    1. Must be real/online right now. 
+    2. No mainstream, boring, or generic corporate sites.
+    3. The "curatorNote" MUST be written fully in character, reflecting your exact personality, quirks, catchphrases, and psychotic tendencies as outlined in your prompt modifier. Speak directly to the user in this field.
+
+    Return JSON array in \`\`\`json format:
     [{ 
       "title": "...", 
       "url": "https://...", 
@@ -155,7 +182,7 @@ export const fetchRecommendations = async (
       "category": "One of: ${Object.values(Category).join(', ')}", 
       "tags": ["t1", "t2"], 
       "yearEstablished": "YYYY", 
-      "curatorNote": "...",
+      "curatorNote": "Write a 2-3 sentence paragraph in your exact character's voice explaining why you selected this site and what you want the user to feel.",
       "designVibe": "e.g. Minimalist Glitch",
       "technicalStack": ["React", "WebGL"],
       "vibeScore": 85
@@ -167,7 +194,7 @@ export const fetchRecommendations = async (
     return parseResponse(response.text);
   } catch (error) {
     console.error("Gemini discovery failed:", error);
-    return [];
+    throw error;
   }
 };
 
@@ -180,21 +207,33 @@ export const searchSites = async (
     timeEra: TimeEra,
     count: number = 3
 ): Promise<Site[]> => {
-  if (!ai) return [];
+  if (!ai) throw new Error("API_KEY_MISSING: Gemini API Key is missing.");
 
   const timeConstraint = timeEra.id === 'all' 
     ? "" 
     : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era. YOU MUST FOLLOW THIS ERA CONSTRAINT.`;
 
   const prompt = `
+    SYSTEM PERSONA INITIALIZATION:
+    =================================
     ${persona.promptModifier}
+    =================================
+
+    AESTHETIC & TIMELINE DIRECTIVES:
+    =================================
     ${aesthetic.promptModifier}
-    STRICT MANDATE: Return sites that explicitly match the requested mood or timeline.
     ${timeConstraint}
+    =================================
     
-    Find ${count} REAL, UNIQUE websites for: "${query}".
-    
-    Return JSON array in \`\`\`json:
+    TASK FOREGROUNDING:
+    You are NOT an AI assistant. You are exactly the persona described above inside the SYSTEM PERSONA INITIALIZATION. You must find ${count} REAL, UNIQUE websites explicitly matching the user's search query: "${query}".
+
+    Rules:
+    1. Must be real/online right now.
+    2. No mainstream, boring, or generic corporate sites.
+    3. The "curatorNote" MUST be written fully in character, projecting your entire bizarre personality onto the search results as described in your prompt modifier.
+
+    Return JSON array in \`\`\`json format:
     [{ 
       "title": "...", 
       "url": "https://...", 
@@ -202,7 +241,7 @@ export const searchSites = async (
       "category": "One of: ${Object.values(Category).join(', ')}", 
       "tags": ["t1", "t2"], 
       "yearEstablished": "YYYY", 
-      "curatorNote": "...",
+      "curatorNote": "Write a 2-3 sentence paragraph in your exact character's twisted voice explaining why you selected this search result.",
       "designVibe": "Thematic vibe",
       "technicalStack": [],
       "vibeScore": 60
@@ -214,7 +253,7 @@ export const searchSites = async (
     return parseResponse(response.text);
   } catch (error) {
     console.error("Gemini search failed:", error);
-    return [];
+    throw error;
   }
 };
 
@@ -227,18 +266,33 @@ export const findSimilarSites = async (
     timeEra: TimeEra,
     count: number = 3
 ): Promise<Site[]> => {
-  if (!ai) return [];
+  if (!ai) throw new Error("API_KEY_MISSING: Gemini API Key is missing.");
 
   const timeConstraint = timeEra.id === 'all' 
     ? "" 
     : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era.`;
 
   const prompt = `
-    Find ${count} websites SIMILAR to: "${title}" (${url}).
+    SYSTEM PERSONA INITIALIZATION:
+    =================================
+    You are a deeply opinionated AI curator.
+    =================================
+
+    AESTHETIC & TIMELINE DIRECTIVES:
+    =================================
     FILTER: Favor aesthetic: ${aesthetic.name}.
     ${timeConstraint}
+    =================================
     
-    Return JSON array in \`\`\`json:
+    Find ${count} websites SIMILAR to: "${title}" (${url}).
+    Focus on structural similarity, weirdness, and the chosen aesthetic.
+
+    Rules:
+    1. Must be real/online right now.
+    2. No mainstream, boring, or generic corporate sites.
+    3. The "curatorNote" MUST be written in an obsessive, eccentric voice comparing the site to the original link.
+
+    Return JSON array in \`\`\`json format:
     [{ 
       "title": "...", 
       "url": "https://...", 
@@ -246,7 +300,7 @@ export const findSimilarSites = async (
       "category": "One of: ${Object.values(Category).join(', ')}", 
       "tags": ["t1", "t2"], 
       "yearEstablished": "YYYY", 
-      "curatorNote": "...",
+      "curatorNote": "Write a 2-3 sentence paragraph in an eccentric curator's voice explaining why this site is a worthy successor to the original.",
       "designVibe": "Similar aesthetic",
       "technicalStack": [],
       "vibeScore": 75
@@ -258,12 +312,12 @@ export const findSimilarSites = async (
     return parseResponse(response.text);
   } catch (error) {
     console.error("Gemini similarity search failed:", error);
-    return [];
+    throw error;
   }
 };
 
 export const getSiteAnalysis = async (site: Site, persona: CuratorPersona, model: AIModel, thinkingBudget: number = 0, aesthetic: Aesthetic, timeEra: TimeEra): Promise<string> => {
-    if (!ai) return "AI connection unavailable.";
+    if (!ai) throw new Error("API_KEY_MISSING: Gemini API Key is missing.");
     
     const timeContext = timeEra.id === 'all' ? "" : `The user is exploring the ${timeEra.name} era (${timeEra.range}).`;
 
@@ -281,8 +335,8 @@ export const getSiteAnalysis = async (site: Site, persona: CuratorPersona, model
     try {
         const response = await executeWithAutoRouter(prompt, model, thinkingBudget);
         return response.text || "Analysis failed.";
-    } catch (e) {
-        console.error(e);
-        return "Neural link severed. Analysis unavailable.";
+    } catch (e: any) {
+        console.error("Analysis Error:", e);
+        throw new Error(e.message || "Neural link severed. Analysis unavailable.");
     }
 }

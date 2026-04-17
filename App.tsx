@@ -178,6 +178,7 @@ const App: React.FC = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   const [submittedSites, setSubmittedSites] = useLocalStorage<any[]>('rabbithole_submissions', []);
   const [soundEnabled, setSoundEnabled] = useLocalStorage('rabbithole_sound', true);
   const [autoStumble, setAutoStumble] = useState(false);
@@ -234,12 +235,12 @@ const App: React.FC = () => {
 
   const fetchMoreSites = useCallback(async (category: Category) => {
     try {
-      const newSites = await fetchRecommendations(category, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 25);
+      const newSites = await fetchRecommendations(category, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 25, selectedTag);
       setSiteQueue(prev => [...prev, ...newSites]);
     } catch (e) {
       console.warn("Background fetch failed", e);
     }
-  }, [activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra]); 
+  }, [activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, selectedTag]); 
 
   const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
     if (e) e.preventDefault();
@@ -279,8 +280,9 @@ const App: React.FC = () => {
         setStatus('idle');
         setSearchQuery("");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setGlobalError(err.message || "An unknown anomaly occurred in the neural link.");
       setStatus('error');
     }
   };
@@ -328,8 +330,9 @@ const App: React.FC = () => {
       } else {
         setStatus('error');
       }
-    } catch (err) {
+    } catch (err: any) {
         console.error(err);
+        setGlobalError(err.message || "An unknown anomaly occurred in the neural link.");
         setStatus('error');
     }
   };
@@ -340,8 +343,8 @@ const App: React.FC = () => {
       try {
           const analysis = await getSiteAnalysis(site, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra);
           setCurrentAnalysis(analysis);
-      } catch (e) {
-          setCurrentAnalysis("Neural link severed. Local analysis unavailable.");
+      } catch (e: any) {
+          setCurrentAnalysis(e.message || "Neural link severed. Local analysis unavailable.");
       } finally {
           setIsAnalyzing(false);
       }
@@ -413,7 +416,7 @@ const App: React.FC = () => {
         return;
     }
 
-    if (siteQueue.length > 0 && !selectedTag) {
+    if (siteQueue.length > 0) {
       const nextSite = siteQueue[0];
       setSiteQueue(prev => prev.slice(1));
       setCurrentSite(nextSite);
@@ -427,13 +430,8 @@ const App: React.FC = () => {
       return;
     }
 
-    if (selectedTag) {
-        fallbackStumble();
-        return;
-    }
-
     try {
-      const newSites = await fetchRecommendations(selectedCategory, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 25);
+      const newSites = await fetchRecommendations(selectedCategory, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 25, selectedTag);
       if (newSites.length > 0) {
         const first = newSites[0];
         const rest = newSites.slice(1);
@@ -445,8 +443,11 @@ const App: React.FC = () => {
       } else {
         fallbackStumble();
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      if (e.message) {
+         setGlobalError(e.message);
+      }
       fallbackStumble();
     }
   }, [selectedCategory, selectedTag, siteQueue, fallbackStumble, fetchMoreSites, addToHistory, isSearchActive, searchQuery, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra]); // handleSearch intentionally omitted to prevent circular dependency unless memoized properly, but we can safely call it using the current state values inside the callback.
@@ -559,6 +560,7 @@ const App: React.FC = () => {
       setSelectedTag(tag);
       setIsSearchActive(false); 
       setSearchQuery('');
+      setSiteQueue([]);
     }
   };
 
@@ -590,9 +592,9 @@ const App: React.FC = () => {
 
       {/* Header */}
       <header className={`sticky top-0 z-40 w-full border-b ${activeAesthetic.styles.border} ${activeAesthetic.styles.bg}/80 backdrop-blur-md transition-colors duration-700`}>
-        {/* Category Filter Bar */}
+        {/* Advanced Filter Bar */}
         <div className={`w-full overflow-x-auto no-scrollbar border-b ${activeAesthetic.styles.border} py-2 px-4 bg-black/5`}>
-          <div className="max-w-7xl mx-auto flex gap-4 min-w-max">
+          <div className="max-w-7xl mx-auto flex gap-4 min-w-max items-center">
             {Object.values(Category).map(cat => (
               <button
                 key={cat}
@@ -602,6 +604,35 @@ const App: React.FC = () => {
                 {cat}
               </button>
             ))}
+            
+            <div className="w-[1px] h-4 bg-gray-500/50 mx-2"></div>
+            
+            {/* Quick Era Filters */}
+            <div className="flex gap-2 items-center">
+                <Clock size={12} className={activeAesthetic.styles.subText} />
+                {TIME_ERAS.slice(0, 3).map(era => (
+                  <button
+                    key={'quick-'+era.id}
+                    onClick={() => { setActiveEra(era); playSound('blip'); }}
+                    className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded transition-all border ${activeEra.id === era.id ? `border-current ${activeAesthetic.styles.text}` : `border-transparent ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}`}
+                  >
+                    {era.name}
+                  </button>
+                ))}
+            </div>
+
+            {/* Selected Tag Indicator */}
+            {selectedTag && (
+               <>
+                 <div className="w-[1px] h-4 bg-gray-500/50 mx-2"></div>
+                 <button 
+                    onClick={() => setSelectedTag(null)}
+                    className={`flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded transition-all bg-indigo-500/20 text-indigo-300 border border-indigo-500/50 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/50`}
+                 >
+                    <Tag size={10} /> {selectedTag} <X size={10} />
+                 </button>
+               </>
+            )}
           </div>
         </div>
         
@@ -712,10 +743,17 @@ const App: React.FC = () => {
                                     <button
                                         key={persona.id}
                                         onClick={() => { setActivePersona(persona); playSound('blip'); }}
-                                        className={`w-full text-left p-2 rounded-lg text-sm transition-colors flex items-center gap-3 ${activePersona.id === persona.id ? 'bg-black/20 font-bold' : `hover:bg-black/10 ${activeAesthetic.styles.subText}`}`}
+                                        className={`w-full text-left p-2 rounded-lg text-sm transition-colors flex flex-col ${activePersona.id === persona.id ? `bg-black/20 border-l-2 ${activeAesthetic.styles.border}` : `hover:bg-black/10`}`}
                                     >
-                                        <div className={`w-2 h-2 rounded-full ${persona.color}`}></div>
-                                        <div className="truncate">{persona.name}</div>
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-2 h-2 rounded-full ${persona.color}`}></div>
+                                            <div className={`truncate font-bold ${activePersona.id === persona.id ? activeAesthetic.styles.text : activeAesthetic.styles.subText}`}>{persona.name}</div>
+                                        </div>
+                                        {activePersona.id === persona.id && (
+                                            <div className={`text-[10px] mt-2 leading-relaxed ${activeAesthetic.styles.subText}`}>
+                                                {persona.description}
+                                            </div>
+                                        )}
                                     </button>
                                 ))}
                              </div>
@@ -1246,6 +1284,19 @@ const App: React.FC = () => {
               </div>
            </div>
         </div>
+      )}
+
+      {/* Global Error Banner */}
+      {globalError && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+              <div className="bg-red-900/90 text-white px-6 py-3 rounded-xl shadow-2xl border border-red-500 flex items-center gap-3 backdrop-blur-sm max-w-sm sm:max-w-md w-full">
+                  <AlertCircle size={20} className="text-red-400 shrink-0" />
+                  <p className="text-sm font-medium leading-tight">{globalError}</p>
+                  <button onClick={() => setGlobalError(null)} className="ml-auto p-1 hover:bg-white/10 rounded">
+                      <X size={16} />
+                  </button>
+              </div>
+          </div>
       )}
 
     </div>

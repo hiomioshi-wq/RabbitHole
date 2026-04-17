@@ -39,12 +39,25 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
-  const handleShare = (e: React.MouseEvent) => {
+  const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const shareText = `🕳️ Down the RabbitHole 🕳️\n\nI discovered: ${site.title}\n"${site.description}"\n\n🎨 Vibe: ${aesthetic.name}\n🕰️ Era: ${era.name}\n🤖 Curator: ${persona.name}\n\nExplore it here: ${site.url}`;
-    navigator.clipboard.writeText(shareText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: `RabbitHole Discovery: ${site.title}`,
+                text: shareText,
+                url: site.url
+            });
+        } catch (err) {
+            console.error("Error sharing:", err);
+        }
+    } else {
+        await navigator.clipboard.writeText(shareText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+    }
   };
 
   const handleCopyUrl = (e: React.MouseEvent) => {
