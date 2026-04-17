@@ -23,9 +23,14 @@ export enum Category {
   MUSIC = 'Music/Audio',
   SOCIAL = 'Niche Social',
   AI = 'AI Experiments',
+  PLACES = 'Places & Maps',
   WEB_SEARCH = 'Web Search',
   GAMES = 'Games',
   BLOGS = 'Personal Blogs',
+  LITERATURE = 'Literature & Lore',
+  FORGOTTEN_MEDIA = 'Forgotten Media',
+  CONSPIRACIES = 'Conspiracies & Theories',
+  SOFTWARE_ARCHIVE = 'Software Archives',
   WEIRD = 'Weird Web'
 }
 

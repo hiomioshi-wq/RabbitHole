@@ -44,7 +44,8 @@ const executeWithRouter = async (
     prompt: string,
     model: AIModel,
     thinkingBudget: number,
-    actionType: string = 'discover'
+    actionType: string = 'discover',
+    useMaps: boolean = false
 ): Promise<{ text: string }> => {
     const apiKey = getApiKey();
     if (!apiKey) {
@@ -65,11 +66,15 @@ const executeWithRouter = async (
     while (retryLoops <= MAX_RETRY_LOOPS) {
         try {
             const baseConfig: any = {};
-            // Research mode: Enable Google Search for discovery/search/similar if model is Gemini and supported
+            // Research mode: Enable Google Search or Google Maps for discovery/search/similar if model is Gemini and supported
             if (actionType !== 'analysis' && currentModel.id.startsWith('gemini-')) {
                 // gemini-2.5-flash-image specifically does not support searching
                 if (currentModel.id !== 'gemini-2.5-flash-image') {
-                    baseConfig.tools = [{ googleSearch: {} }];
+                    if (useMaps && currentModel.id.startsWith('gemini-3')) {
+                        baseConfig.tools = [{ googleMaps: {} }];
+                    } else if (!useMaps) {
+                        baseConfig.tools = [{ googleSearch: {} }];
+                    }
                 }
             }
 
@@ -233,7 +238,8 @@ export const fetchRecommendations = async (
   `;
 
   try {
-    const response = await executeWithRouter(prompt, model, thinkingBudget, 'discover');
+    const useMaps = category === Category.PLACES || persona.id === 'the_cartographer' || !!tagContext?.toLowerCase().includes('map');
+    const response = await executeWithRouter(prompt, model, thinkingBudget, 'discover', useMaps);
     return parseResponse(response.text);
   } catch (error) {
     console.error("Gemini discovery failed:", error);
@@ -290,7 +296,8 @@ export const searchSites = async (
   `;
 
   try {
-    const response = await executeWithRouter(prompt, model, thinkingBudget, 'search');
+    const useMaps = persona.id === 'the_cartographer' || query.toLowerCase().includes('map');
+    const response = await executeWithRouter(prompt, model, thinkingBudget, 'search', useMaps);
     return parseResponse(response.text);
   } catch (error) {
     console.error("Gemini search failed:", error);
@@ -375,5 +382,38 @@ export const getSiteAnalysis = async (site: Site, persona: CuratorPersona, model
     } catch (e: any) {
         console.error("Analysis Error:", e);
         throw new Error(e.message || "Neural link severed. Analysis unavailable.");
+    }
+}
+
+export const generateSpeech = async (text: string, voiceName: string = 'Kore'): Promise<string> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing.");
+    
+    // Fallback to text reading if needed, but we'll use TTS model
+    const ai = new GoogleGenAI({ apiKey });
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3.1-flash-tts-preview",
+            contents: [{ parts: [{ text }] }],
+            config: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName }
+                    }
+                }
+            }
+        });
+        
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (!base64Audio) {
+            throw new Error("No audio payload returned.");
+        }
+        
+        return base64Audio;
+    } catch (e: any) {
+        console.error("TTS Error:", e);
+        throw new Error("Speech synthesis failed: " + e.message);
     }
 }

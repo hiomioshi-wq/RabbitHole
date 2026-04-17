@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type } from 'lucide-react';
+import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type, Map, BookOpen, Film, Eye, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Site, Category, FetchStatus, CuratorPersona, AIModel, Aesthetic, TimeEra } from './types';
 import { INITIAL_SITES, CATEGORY_COLORS, CURATOR_PERSONAS, AI_MODELS, AESTHETICS, TIME_ERAS } from './constants';
@@ -94,9 +94,14 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
 }
 
 const COLLECTIONS = [
+  { id: 'maps', label: 'Places & Maps', icon: Map, query: 'weird obscure real world locations and map coordinates' },
   { id: 'spooky', label: 'Spooky', icon: Ghost, query: 'scary creepy unsettling websites' },
   { id: 'zen', label: 'Zen Mode', icon: Music, query: 'relaxing ambient peaceful interactive websites' },
   { id: 'retro', label: '90s Web', icon: Gamepad2, query: '90s geocities nostalgia web design' },
+  { id: 'books', label: 'E-Lit & Lore', icon: BookOpen, query: 'digital literature lore and interactive narratives' },
+  { id: 'media', label: 'Lost Media', icon: Film, query: 'forgotten obscure media and archives' },
+  { id: 'mystery', label: 'Conspiracies', icon: Eye, query: 'weird web mysteries and rabbit holes' },
+  { id: 'software', label: 'Old Software', icon: Archive, query: 'retro software emulators and archives' },
   { id: 'art', label: 'Net Art', icon: Palette, query: 'weird internet art experiments' },
   { id: 'ai', label: 'AI Wonders', icon: BrainCircuit, query: 'best obscure ai experiments and tools' },
   { id: 'search', label: 'Web Search', icon: Search, query: 'obscure search engines and directories' },
@@ -153,6 +158,26 @@ const MatrixRain: React.FC = () => {
     }, []);
 
     return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none opacity-20 z-0" />;
+};
+
+export const sanitizeInput = (input: string): string => {
+    if (typeof input !== 'string') return '';
+    return input.replace(/<\/?[^>]+(>|$)/g, "").trim();
+};
+
+export const sanitizeUrl = (input: string): string => {
+    if (typeof input !== 'string') return '';
+    const trimmed = input.trim();
+    if (!trimmed) return '';
+    try {
+        const url = new URL(trimmed);
+        if (url.protocol === 'http:' || url.protocol === 'https:') {
+            return url.href;
+        }
+        return '';
+    } catch {
+        return '';
+    }
 };
 
 const App: React.FC = () => {
@@ -252,10 +277,11 @@ const App: React.FC = () => {
 
   const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
     if (e) e.preventDefault();
-    const q = overrideQuery || searchQuery;
-    if (!q.trim()) return;
+    const rawQ = overrideQuery || searchQuery;
+    const q = sanitizeInput(rawQ);
+    if (!q) return;
 
-    if (overrideQuery) setSearchQuery(overrideQuery);
+    if (overrideQuery) setSearchQuery(q);
 
     playSound('static');
     setStatus('loading');
@@ -1357,13 +1383,17 @@ const App: React.FC = () => {
                  const formData = new FormData(e.currentTarget);
                  const newSite = {
                     id: Math.random().toString(36).substr(2, 9),
-                    title: formData.get('title') as string,
-                    url: formData.get('url') as string,
-                    description: formData.get('description') as string,
+                    title: sanitizeInput(formData.get('title') as string),
+                    url: sanitizeUrl(formData.get('url') as string),
+                    description: sanitizeInput(formData.get('description') as string),
                     category: formData.get('category') as Category,
-                    tags: (formData.get('tags') as string).split(',').map(t => t.trim()).filter(Boolean),
+                    tags: sanitizeInput(formData.get('tags') as string).split(',').map(t => t.trim()).filter(Boolean),
                     submittedAt: new Date().toISOString()
                  };
+                 if (!newSite.url) {
+                     playSound('error');
+                     return;
+                 }
                  setSubmittedSites(prev => [newSite, ...prev]);
                  setIsSubmitModalOpen(false);
                  playSound('success');
@@ -1478,7 +1508,7 @@ const App: React.FC = () => {
               <form onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
-                  const key = formData.get('apiKey') as string;
+                  const key = sanitizeInput(formData.get('apiKey') as string);
                   window.localStorage.setItem('RABBIT_HOLE_API_KEY', key);
                   setIsNeuralLinkModalOpen(false);
                   playSound('success');

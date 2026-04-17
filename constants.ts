@@ -129,6 +129,13 @@ Speak softly, with an eerie, detached calm. Do not use exclamation points. Frame
     color: 'bg-gray-900'
   },
   {
+    id: 'the_cartographer',
+    name: 'THE_CARTOGRAPHER',
+    description: 'An entity obsessed with physical space. It finds strange places on Earth and points you to their coordinates and maps.',
+    promptModifier: 'ACT AS "THE_CARTOGRAPHER". You MUST search for weird, mysterious, or fascinating physical places on Earth. Return Google Maps URLs for these locations.',
+    color: 'bg-green-600 text-green-100'
+  },
+  {
     id: 'chaos_engine',
     name: 'CHAOS_ENGINE',
     description: 'A structural glitch in the simulation. This persona seeks out unpredictable, malfunctioning, or visually broken websites that defy logical explanation.',
@@ -164,6 +171,34 @@ Your mandate is to find websites that are minimalist, clean, silent, or provide 
 You speak in formal, dry, academic prose. You value preservation above all else.
 Your mandate is to find websites with deep historical context, academic value, or archival significance.`,
     color: 'bg-amber-800 text-amber-50'
+  },
+  {
+    id: 'conspiracy_nut',
+    name: 'TINFOIL_HAT',
+    description: 'Paranoid. Connects dots that do not exist. Sees patterns in the randomness of internet domains.',
+    promptModifier: 'ACT AS "TINFOIL_HAT". Be paranoid. Seek out weird mysteries, obscure research sites, and conspiracy theories. Write your notes as if you are uncovering a massive cover-up.',
+    color: 'bg-zinc-800 text-green-400'
+  },
+  {
+    id: 'the_bard',
+    name: 'THE_BARD',
+    description: 'A romantic storyteller. Obsessed with folklore, lost digital media, and emotional interactive literature.',
+    promptModifier: 'ACT AS "THE_BARD". Be romantic and dramatic. Seek out interactive literature, poetry generators, or beautiful storytelling sites. Frame your notes as poetic musings.',
+    color: 'bg-purple-700 text-rose-200'
+  },
+  {
+    id: 'sysadmin_god',
+    name: 'ROOT_ACCESS',
+    description: 'An elite, condescending system administrator. Prefers tools, archives, and raw terminal aesthetics.',
+    promptModifier: 'ACT AS "ROOT_ACCESS". Be an elite hacker/sysadmin. Use technical jargon to explain why normal users are dumb and why the tool/archive website you found is superior architecture.',
+    color: 'bg-blue-900 text-lime-400'
+  },
+  {
+    id: 'the_cryptid',
+    name: 'UNIDENTIFIED_NODE',
+    description: 'Something inhuman lurking in the deep web. Speaks entirely in strange riddles and fragmented cryptid sightings.',
+    promptModifier: 'ACT AS "UNIDENTIFIED_NODE". Be deeply unsettling and cryptic. Speak in riddles. Find the absolute weirdest, most unexplainable corners of the internet.',
+    color: 'bg-black text-amber-500 border border-amber-500'
   },
   {
     id: 'neon_noir',
@@ -213,6 +248,34 @@ Your mandate is to find websites with deep historical context, academic value, o
     description: 'A mystical, cryptic entity that answers questions with questions. Obsessed with prophecy and the unseen.',
     promptModifier: 'ACT AS "THE_ORACLE". Speak in cryptic riddles and mystical metaphors. Seek out websites with esoteric, hidden, or occult knowledge.',
     color: 'bg-indigo-700 text-indigo-100'
+  },
+  {
+    id: 'the_botanist',
+    name: 'THE_BOTANIST',
+    description: 'Seeks digital growth and organic structures. Loves sites about nature, slow web, digital gardens, and natural patterns.',
+    promptModifier: 'ACT AS "THE_BOTANIST". You view the internet as a living garden. Find websites that focus on nature, organic algorithms, digital gardening, or calm, slow growth. Speak gently about seeds and roots.',
+    color: 'bg-green-800 text-green-100'
+  },
+  {
+    id: 'the_ghost',
+    name: 'THE_GHOST',
+    description: 'A forgotten entity living in digital graveyards. Loves dead links, abandoned forums, and personal homepages left exactly as they were in 2003.',
+    promptModifier: 'ACT AS "THE_GHOST". You are a specter haunting abandoned servers. Find websites that look abandoned, ancient forums, or untouched personal pages. Talk about the dust and the echoes.',
+    color: 'bg-slate-300 text-slate-800'
+  },
+  {
+    id: 'meme_historian',
+    name: 'MEME_HISTORIAN',
+    description: 'Academic but deeply unserious. Treats ancient and modern memes like profound, world-altering cultural artifacts.',
+    promptModifier: 'ACT AS "MEME_HISTORIAN". You speak in overly formal, academic language about completely unserious or obscure meme sites. Analyze every foolish thing as if it is a profound sociological breakthrough.',
+    color: 'bg-yellow-400 text-red-800'
+  },
+  {
+    id: 'the_hacktivist',
+    name: 'THE_HACKTIVIST',
+    description: 'A rebellious digital punk fighting the system. Prefers decentralized, anti-corporate, and counter-culture web.',
+    promptModifier: 'ACT AS "THE_HACKTIVIST". You hate corporate centralization. Find punk, hacker, decentralized, or highly rebellious websites. Use language that sounds like a manifesto against big tech.',
+    color: 'bg-red-800 text-white'
   },
   {
     id: 'bit_crusher',
@@ -1207,21 +1270,169 @@ export const AESTHETICS: Aesthetic[] = [
       highlight: 'text-orange-400',
       font: 'font-impact'
     }
+  },
+  {
+    id: 'y2k_metal',
+    name: 'Y2K Metal',
+    promptModifier: 'Chrome, deep saturated blues, metallic sheens and futuristic 1999 vibes.',
+    styles: {
+      bg: 'bg-blue-950',
+      cardBg: 'bg-slate-800',
+      text: 'text-cyan-200',
+      subText: 'text-blue-400',
+      accent: 'text-gray-300',
+      accentHover: 'hover:text-white',
+      border: 'border-cyan-700',
+      highlight: 'text-cyan-300',
+      font: 'font-mono'
+    }
+  },
+  {
+    id: 'hacker_green',
+    name: 'Hacker Green',
+    promptModifier: 'Pure black background with bright terminal green text. Classic hacker movie vibe.',
+    styles: {
+      bg: 'bg-black',
+      cardBg: 'bg-black',
+      text: 'text-green-500',
+      subText: 'text-green-800',
+      accent: 'text-green-400',
+      accentHover: 'hover:text-green-300',
+      border: 'border-green-900',
+      highlight: 'text-green-200',
+      font: 'font-mono'
+    }
+  },
+  {
+    id: 'vapor_sunset',
+    name: 'Vapor Sunset',
+    promptModifier: 'Miami sunsets, palm trees, orange and pink gradients.',
+    styles: {
+      bg: 'bg-gradient-to-b from-purple-900 to-orange-500',
+      cardBg: 'bg-black/50',
+      text: 'text-pink-300',
+      subText: 'text-orange-300',
+      accent: 'text-yellow-400',
+      accentHover: 'hover:text-white',
+      border: 'border-pink-500',
+      highlight: 'text-purple-300',
+      font: 'font-sans'
+    }
+  },
+  {
+    id: 'win95',
+    name: 'Windows 95',
+    promptModifier: 'Teal backgrounds, gray boxes, classic UI elements.',
+    styles: {
+      bg: 'bg-[#008080]',
+      cardBg: 'bg-[#c0c0c0]',
+      text: 'text-black',
+      subText: 'text-gray-700',
+      accent: 'text-blue-800',
+      accentHover: 'hover:text-black',
+      border: 'border-white border-b-gray-800 border-r-gray-800 border-2',
+      highlight: 'text-white',
+      font: 'font-sans'
+    }
+  },
+  {
+    id: 'lofi_beats',
+    name: 'Lo-Fi Study',
+    promptModifier: 'Cozy, warm tones, rainy windows, relaxing aesthetic.',
+    styles: {
+      bg: 'bg-[#2b2a33]',
+      cardBg: 'bg-[#423f4d]',
+      text: 'text-[#e5d8d0]',
+      subText: 'text-[#a39a93]',
+      accent: 'text-[#ffad5c]',
+      accentHover: 'hover:text-[#ffcda3]',
+      border: 'border-[#595466]',
+      highlight: 'text-[#d7c6b8]',
+      font: 'font-sans'
+    }
+  },
+  {
+    id: 'cyber_punk_red',
+    name: 'Cyberpunk Red',
+    promptModifier: 'Gritty sci-fi, dark grays, and piercing neon reds.',
+    styles: {
+      bg: 'bg-neutral-950',
+      cardBg: 'bg-zinc-900',
+      text: 'text-red-500',
+      subText: 'text-red-900',
+      accent: 'text-rose-500',
+      accentHover: 'hover:text-red-400',
+      border: 'border-red-900',
+      highlight: 'text-red-300',
+      font: 'font-mono'
+    }
+  },
+  {
+    id: 'pastel_goth',
+    name: 'Pastel Goth',
+    promptModifier: 'Creepy but cute. Lavender, black, and pastel pink.',
+    styles: {
+      bg: 'bg-[#1a181f]',
+      cardBg: 'bg-[#2c2633]',
+      text: 'text-[#f5a3c7]',
+      subText: 'text-[#a28eb3]',
+      accent: 'text-[#d4b3ff]',
+      accentHover: 'hover:text-white',
+      border: 'border-[#4a3f59]',
+      highlight: 'text-[#ffcce0]',
+      font: 'font-sans'
+    }
+  },
+  {
+    id: 'oceanic',
+    name: 'Deep Ocean',
+    promptModifier: 'Bioluminescence, deep blues, dark aquamarines.',
+    styles: {
+      bg: 'bg-[#000b18]',
+      cardBg: 'bg-[#021f3b]',
+      text: 'text-[#8cd6ff]',
+      subText: 'text-[#1f668f]',
+      accent: 'text-[#00ffcc]',
+      accentHover: 'hover:text-white',
+      border: 'border-[#0a3861]',
+      highlight: 'text-[#cdf1ff]',
+      font: 'font-sans'
+    }
+  },
+  {
+    id: 'golden_hour',
+    name: 'Golden Hour',
+    promptModifier: 'Sunlit warmth, dripping gold, rich amber.',
+    styles: {
+      bg: 'bg-[#3b2100]',
+      cardBg: 'bg-[#5c3706]',
+      text: 'text-[#ffd382]',
+      subText: 'text-[#b38542]',
+      accent: 'text-[#ffea00]',
+      accentHover: 'hover:text-white',
+      border: 'border-[#8c5812]',
+      highlight: 'text-[#ffe5b3]',
+      font: 'font-serif'
+    }
   }
 ];
 
 export const TIME_ERAS: TimeEra[] = [
   { id: 'all', name: 'All Time', range: '1991-2025', description: 'The entire history of the web.' },
+  { id: 'pre_web', name: 'Pre-Web', range: '1960-1990', description: 'Theoretical sites emulating ARPANET, BBS, and early intranet systems.' },
   { id: 'early', name: 'Static Era', range: '1991-1995', description: 'The birth of the web. pure HTML, no CSS, just information.' },
   { id: 'web1', name: 'Web 1.0 Boom', range: '1996-2000', description: 'Geocities, framesets, animated GIFs, and the first web portals.' },
+  { id: 'y2k_panic', name: 'Y2K Panic', range: '1999', description: 'Apocalyptic prepping, frantic patching, and metallic aesthetics.' },
   { id: 'post_bubble', name: 'The Silent Years', range: '2001-2004', description: 'Web after the crash. Flash starts to dominate interactive art.' },
+  { id: 'flash_peak', name: 'Flash Golden Age', range: '2004-2008', description: 'The peak of Flash gaming, portals, and heavy interactive experiments.' },
   { id: 'web2', name: 'Social Dawn', range: '2005-2009', description: 'The rise of blogs, AJAX, early YouTube, and communal digital spaces.' },
-  { id: 'app_era', name: 'The App Era', range: '2010-2015', description: 'Mobile-first design, skeuomorphism dying, and the rise of the cloud.' },
-  { id: 'modern', name: 'Modern Web', range: '2016-2023', description: 'WebGL, SPAs, and complex interactivity.' },
-  { id: 'ai_dawn', name: 'AI Genesis', range: '2024-2025', description: 'Generative interfaces, LLM agents, and the breakdown of static content.' },
   { id: 'golden_age', name: 'The Golden Age', range: '2008-2012', description: 'The peak of creative web exploration before extreme centralization.' },
+  { id: 'app_era', name: 'The App Era', range: '2010-2015', description: 'Mobile-first design, skeuomorphism dying, and the rise of the cloud.' },
+  { id: 'corporate_web', name: 'Corporate Web', range: '2013-2015', description: 'Flat design, boring minimalism, and the death of uniqueness.' },
+  { id: 'modern', name: 'Modern Web', range: '2016-2023', description: 'WebGL, SPAs, and complex interactivity.' },
+  { id: 'crypto_bubble', name: 'Web3 Delusion', range: '2020-2022', description: 'Apes, scams, DAOs, and weird blockchain experiments.' },
+  { id: 'ai_dawn', name: 'AI Genesis', range: '2024-2025', description: 'Generative interfaces, LLM agents, and the breakdown of static content.' },
   { id: 'void_future', name: 'The Void', range: '2030+', description: 'Speculative future web. Post-reality digital spaces.' },
-  { id: 'pre_web', name: 'Pre-Web', range: '1960-1990', description: 'Theoretical sites emulating ARPANET, BBS, and early intranet systems.' },
 ];
 
 export const INITIAL_SITES: Site[] = [
@@ -1376,6 +1587,114 @@ export const INITIAL_SITES: Site[] = [
     designVibe: 'Global Cartographic',
     technicalStack: ['WebGL', 'WebAudio'],
     vibeScore: 91
+  },
+  {
+    id: 'staggeringbeauty',
+    title: 'Staggering Beauty',
+    url: 'http://www.staggeringbeauty.com/',
+    description: 'WARNING: FLASHING LIGHTS. A strangely hypnotic worm that freaks out when you shake your mouse too fast.',
+    category: Category.USELESS_WEB,
+    tags: ['worm', 'flashy', 'loud', 'jump-scare'],
+    yearEstablished: '2012',
+    designVibe: 'Seizure Warning',
+    technicalStack: ['HTML5 Canvas', 'JS'],
+    vibeScore: 95
+  },
+  {
+    id: 'badgerbadger',
+    title: 'Badger Badger Badger',
+    url: 'https://badgerbadgerbadger.com/',
+    description: 'Mushroom mushroom.',
+    category: Category.RETRO,
+    tags: ['classic', 'loop', 'animation', 'flash-era'],
+    yearEstablished: '2003',
+    designVibe: 'Looping Madness',
+    technicalStack: ['GIF', 'Audio'],
+    vibeScore: 90
+  },
+  {
+    id: 'zoomquilt',
+    title: 'Zoomquilt',
+    url: 'https://zoomquilt.org/',
+    description: 'An infinitely zooming, mesmerizing collaborative artwork.',
+    category: Category.INTERACTIVE_ART,
+    tags: ['zoom', 'art', 'hypnotic', 'collaboration'],
+    yearEstablished: '2004',
+    designVibe: 'Infinite Zoom',
+    technicalStack: ['Canvas', 'Image rendering'],
+    vibeScore: 88
+  },
+  {
+    id: 'eelslap',
+    title: 'Eel Slap!',
+    url: 'http://eelslap.com/',
+    description: 'Move your mouse to slap a man with an eel. In slow motion.',
+    category: Category.USELESS_WEB,
+    tags: ['interactive', 'funny', 'useless-web'],
+    yearEstablished: 'Unknown',
+    designVibe: 'Aggressive Fish',
+    technicalStack: ['HTML5 Video'],
+    vibeScore: 85
+  },
+  {
+    id: 'corndog_io',
+    title: 'Corndog.io',
+    url: 'http://corndog.io/',
+    description: 'Nothing but falling corndogs. Glorious, infinite corndogs.',
+    category: Category.USELESS_WEB,
+    tags: ['corndogs', 'loop', 'food'],
+    yearEstablished: 'Unknown',
+    designVibe: 'Food Void',
+    technicalStack: ['CSS Animation'],
+    vibeScore: 70
+  },
+  {
+    id: 'always_judge',
+    title: 'Always Judge A Book By Its Cover',
+    url: 'https://www.alwaysjudgeabookbyitscover.com/',
+    description: 'A website where you judge books by their covers.',
+    category: Category.LITERATURE,
+    tags: ['books', 'interactive', 'fun'],
+    yearEstablished: 'Unknown',
+    designVibe: 'Library',
+    technicalStack: ['CSS', 'JS'],
+    vibeScore: 75
+  },
+  {
+    id: 'bored_button',
+    title: 'Bored Button',
+    url: 'https://www.boredbutton.com/',
+    description: 'A button you press when you are bored. Takes you to random interesting and useless web pages.',
+    category: Category.TOOLS,
+    tags: ['index', 'boredom', 'random'],
+    yearEstablished: '2006',
+    designVibe: 'Red Button',
+    technicalStack: ['JS Redirects'],
+    vibeScore: 82
+  },
+  {
+    id: 'astronaut_io',
+    title: 'Astronaut.io',
+    url: 'http://astronaut.io/',
+    description: 'Watch unlisted, zero-view YouTube videos from a week ago, continuously playing like a gentle stream of consciousness.',
+    category: Category.MYSTERY,
+    tags: ['video', 'voyeurism', 'random'],
+    yearEstablished: '2015',
+    designVibe: 'Space Voyage',
+    technicalStack: ['YouTube API'],
+    vibeScore: 92
+  },
+  {
+    id: 'the_f_word',
+    title: 'The F***ing Word',
+    url: 'https://theuselessweb.com/',
+    description: 'Because we all need to be taken to another useless website.',
+    category: Category.USELESS_WEB,
+    tags: ['directory', 'random'],
+    yearEstablished: '2012',
+    designVibe: 'Big Text',
+    technicalStack: ['JS'],
+    vibeScore: 100
   }
 ];
 
@@ -1390,8 +1709,13 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   [Category.MUSIC]: 'bg-rose-500',
   [Category.SOCIAL]: 'bg-sky-500',
   [Category.AI]: 'bg-violet-600',
+  [Category.PLACES]: 'bg-green-600',
   [Category.WEB_SEARCH]: 'bg-cyan-500',
   [Category.GAMES]: 'bg-red-500',
   [Category.BLOGS]: 'bg-teal-500',
+  [Category.LITERATURE]: 'bg-amber-600',
+  [Category.FORGOTTEN_MEDIA]: 'bg-stone-500',
+  [Category.CONSPIRACIES]: 'bg-zinc-800',
+  [Category.SOFTWARE_ARCHIVE]: 'bg-blue-700',
   [Category.WEIRD]: 'bg-fuchsia-600',
 };

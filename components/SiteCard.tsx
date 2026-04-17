@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Site, Aesthetic, CuratorPersona, TimeEra } from '../types';
 import { CATEGORY_COLORS } from '../constants';
-import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck, Tag, Terminal } from 'lucide-react';
+import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck, Tag, Terminal, Play, Square, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { generateSpeech } from '../services/geminiService';
 
 interface SiteCardProps {
   site: Site;
@@ -49,6 +50,12 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   const [showPreview, setShowPreview] = useState(false);
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
 
+  // Audio state
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [isPlayingNote, setIsPlayingNote] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isAnalyzing) {
@@ -60,6 +67,76 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
     }
     return () => clearInterval(interval);
   }, [isAnalyzing]);
+
+  // Cleanup audio on unmount or when site changes
+  useEffect(() => {
+    return () => {
+      stopAudio();
+    };
+  }, [site.id]);
+
+  const stopAudio = () => {
+      if (audioSourceRef.current) {
+          try { audioSourceRef.current.stop(); } catch (e) {}
+          audioSourceRef.current.disconnect();
+          audioSourceRef.current = null;
+      }
+      setIsPlayingNote(false);
+      setIsSynthesizing(false);
+  };
+
+  const handleSynthesizeNote = async () => {
+      if (isPlayingNote) {
+          stopAudio();
+          return;
+      }
+
+      if (!site.curatorNote) return;
+      
+      try {
+          setIsSynthesizing(true);
+          
+          if (!audioContextRef.current) {
+              const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+              if (AudioContext) {
+                  audioContextRef.current = new AudioContext();
+              }
+          }
+          
+          if (!audioContextRef.current) throw new Error("Audio not supported");
+
+          // Voice selection based on Persona for flavor
+          // Default to Kore, unless aggressive or bizarre
+          let voiceName = 'Kore';
+          if (persona.id === 'chaos_engine' || persona.id === 'void_merchant') voiceName = 'Puck';
+          if (persona.id === 'the_archivist' || persona.id === 'zen_core') voiceName = 'Charon';
+
+          const base64Audio = await generateSpeech(site.curatorNote, voiceName);
+          const binary = atob(base64Audio);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+          }
+          
+          const audioBuffer = await audioContextRef.current.decodeAudioData(bytes.buffer);
+          
+          audioSourceRef.current = audioContextRef.current.createBufferSource();
+          audioSourceRef.current.buffer = audioBuffer;
+          audioSourceRef.current.connect(audioContextRef.current.destination);
+          
+          audioSourceRef.current.onended = () => {
+              setIsPlayingNote(false);
+          };
+          
+          audioSourceRef.current.start();
+          setIsPlayingNote(true);
+      } catch (err: any) {
+          console.error("Failed to synthesize:", err);
+          // Just fail silently for user, the error is logged
+      } finally {
+          setIsSynthesizing(false);
+      }
+  };
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -304,9 +381,20 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
                   <Terminal size={24} className={persona.color.replace('bg-', 'text-')} />
                 </div>
                 <div className="flex-1">
-                   <div className={`text-[10px] uppercase font-bold tracking-[0.2em] font-mono ${aesthetic.styles.subText} mb-2 flex items-center gap-2`}>
-                       <span className={`w-2 h-2 rounded-full ${persona.color} animate-pulse`}></span>
-                       Connection from {persona.name}
+                   <div className={`text-[10px] uppercase font-bold tracking-[0.2em] font-mono ${aesthetic.styles.subText} mb-2 flex items-center justify-between gap-2`}>
+                       <span className="flex items-center gap-2">
+                           <span className={`w-2 h-2 rounded-full ${persona.color} animate-pulse`}></span>
+                           Connection from {persona.name}
+                       </span>
+                       
+                       <button
+                           onClick={handleSynthesizeNote}
+                           disabled={isSynthesizing}
+                           className={`p-1.5 rounded-full bg-black/20 hover:bg-black/40 border border-current/10 hover:border-current/30 transition-all ${aesthetic.styles.accent} ${isSynthesizing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                           title="Vocalize Note"
+                       >
+                           {isSynthesizing ? <Loader2 size={12} className="animate-spin" /> : isPlayingNote ? <Square size={12} className="fill-current" /> : <Volume2 size={12} />}
+                       </button>
                    </div>
                    <div className={`font-mono ${aesthetic.styles.text} text-sm sm:text-base leading-relaxed`}>
                      <span className={aesthetic.styles.accent}>&gt;</span> {site.curatorNote}
