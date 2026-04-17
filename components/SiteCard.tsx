@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Site, Aesthetic, CuratorPersona, TimeEra } from '../types';
 import { CATEGORY_COLORS } from '../constants';
-import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck } from 'lucide-react';
+import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck, Tag, Terminal } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface SiteCardProps {
   site: Site;
@@ -68,217 +69,305 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   };
 
   const handleAnalyzeClick = () => {
-      setShowAnalysis(true);
-      if (onAnalyze && !analysisText) {
+      setShowAnalysis(!showAnalysis);
+      if (onAnalyze && !analysisText && !showAnalysis) {
           onAnalyze(site);
       }
   };
 
+  // Extract the main styling blocks for readability
+  const isBrutal = aesthetic.id === 'brutal';
+  const glowClasses = aesthetic.id === 'cyber' ? 'bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600' : 
+                      aesthetic.id === 'vapor' ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-yellow-400' : 
+                      aesthetic.id === 'solar' ? 'bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400' : 
+                      aesthetic.id === 'matrix' ? 'bg-gradient-to-r from-green-900 via-green-400 to-green-900' :
+                      aesthetic.id === 'academic' ? 'bg-gradient-to-r from-amber-700 via-amber-200 to-amber-900' :
+                      'bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600';
+
   return (
-    <div className="relative w-full max-w-2xl mx-auto group perspective-1000">
+    <motion.div 
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
+      className="relative w-full max-w-4xl mx-auto group perspective-1000 z-10"
+    >
       {/* Background Glow Effect - Dynamic based on Aesthetic */}
-      <div className={`absolute -inset-1 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 ${
-        aesthetic.id === 'cyber' ? 'bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600' : 
-        aesthetic.id === 'vapor' ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-yellow-400' : 
-        aesthetic.id === 'solar' ? 'bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400' : 
-        aesthetic.id === 'matrix' ? 'bg-gradient-to-r from-green-900 via-green-400 to-green-900' :
-        aesthetic.id === 'academic' ? 'bg-gradient-to-r from-amber-700 via-amber-200 to-amber-900' :
-        'bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600'
-      }`}></div>
+      {!isBrutal && (
+        <div className={`absolute -inset-1 rounded-[2rem] blur-xl opacity-20 group-hover:opacity-40 transition duration-1000 ${glowClasses}`}></div>
+      )}
       
-      <div className={`relative ${aesthetic.styles.cardBg} border ${aesthetic.styles.border} rounded-xl p-8 shadow-2xl overflow-hidden min-h-[400px] flex flex-col justify-between transform transition-all duration-700 ease-out hover:scale-[1.02] hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-float`}>
+      <div className={`relative ${aesthetic.styles.cardBg} ${isBrutal ? 'border-4' : 'border'} ${aesthetic.styles.border} ${isBrutal ? 'rounded-none' : 'rounded-3xl'} p-6 sm:p-10 shadow-2xl overflow-hidden flex flex-col justify-between transform transition-all duration-500 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)]`}>
         
-        {/* Background Pattern */}
-        <div className={`absolute top-0 right-0 p-12 opacity-5 pointer-events-none ${aesthetic.styles.text}`}>
-          <Hash size={200} />
+        {/* Decorative Grid/Watermark */}
+        <div className={`absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none ${aesthetic.styles.text}`}>
+          <Hash size={400} className="transform rotate-12 translate-x-1/4 -translate-y-1/4" />
         </div>
 
-        <div>
-          <div className="flex justify-between items-start mb-6">
-            <span className={`${CATEGORY_COLORS[site.category] || 'bg-slate-600'} text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm`}>
-              {site.category}
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={handleShare}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-xs font-bold ${copied ? 'bg-green-500/20 text-green-400 border border-green-500/50' : `bg-black/20 ${aesthetic.styles.subText} hover:${aesthetic.styles.text} hover:bg-black/40 border border-transparent hover:border-current`}`}
-                title="Share Discovery Summary"
-              >
-                {copied ? <><Check size={14} /> Copied Summary!</> : <><Share2 size={14} /> Share</>}
-              </button>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleFavorite(site);
-                }}
-                className={`p-2 rounded-full transition-all ${isFavorite ? 'text-red-500 bg-red-500/10' : `${aesthetic.styles.subText} hover:${aesthetic.styles.text} hover:bg-black/10`}`}
-              >
-                <Heart className={isFavorite ? "fill-current" : ""} size={20} />
-              </button>
-            </div>
+        {/* Top Header Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+             <span className={`${CATEGORY_COLORS[site.category] || 'bg-slate-600'} text-white text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1`}>
+               {site.category}
+             </span>
+             {site.yearEstablished && (
+               <span className={`text-[10px] sm:text-xs ${aesthetic.styles.subText} bg-black/5 px-3 py-1.5 rounded-full border border-current/10 flex items-center gap-1.5 font-mono`}>
+                 <Calendar size={12} /> {site.yearEstablished}
+               </span>
+             )}
           </div>
-
-          <h1 className={`text-4xl md:text-5xl font-display font-bold ${aesthetic.styles.text} mb-6 leading-tight tracking-tight transition-all`}>
-            {site.title}
-          </h1>
-
-          <p className={`text-lg md:text-xl ${aesthetic.styles.subText} leading-relaxed mb-8`}>
-            {site.description}
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            {site.designVibe && (
-              <div className={`flex items-start gap-3 p-3 rounded-lg bg-black/20 border border-white/5`}>
-                 <Palette size={18} className={aesthetic.styles.accent} />
-                 <div>
-                   <div className={`text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-0.5`}>Design DNA</div>
-                   <div className={`text-sm font-medium ${aesthetic.styles.text}`}>{site.designVibe}</div>
-                 </div>
-              </div>
-            )}
-            
-            {site.vibeScore !== undefined && (
-              <div className={`flex items-start gap-3 p-3 rounded-lg bg-black/20 border border-white/5`}>
-                 <Gauge size={18} className={aesthetic.styles.highlight} />
-                 <div className="flex-1">
-                   <div className={`text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-0.5`}>Vibe Potency</div>
-                   <div className="flex items-center gap-2">
-                     <div className={`text-sm font-bold ${aesthetic.styles.text}`}>{site.vibeScore}%</div>
-                     <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-                       <div 
-                         className={`h-full ${aesthetic.styles.highlight === 'text-cyan-400' || aesthetic.styles.highlight === 'text-cyan-500' ? 'bg-cyan-500' : 'bg-indigo-500'} transition-all duration-1000 shadow-[0_0_8px_rgba(255,255,255,0.3)]`} 
-                         style={{ width: `${site.vibeScore}%` }}
-                       />
-                     </div>
-                   </div>
-                 </div>
-              </div>
-            )}
-          </div>
-
-          {site.technicalStack && site.technicalStack.length > 0 && (
-             <div className="mb-6 flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
-               <Cpu size={14} className={aesthetic.styles.subText} />
-               <div className="flex gap-2">
-                 {site.technicalStack.map(tech => (
-                   <span key={tech} className={`text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 border ${aesthetic.styles.border} ${aesthetic.styles.subText}`}>
-                     {tech}
-                   </span>
-                 ))}
-               </div>
-             </div>
-          )}
-
-          {site.curatorNote && (
-            <div className={`bg-black/20 border-l-4 ${aesthetic.id === 'brutal' ? 'border-lime-500' : 'border-indigo-500'} p-4 mb-6 rounded-r-lg italic ${aesthetic.styles.subText} text-sm`}>
-              "<span className={`${aesthetic.styles.highlight} font-semibold`}>AI Curator:</span> {site.curatorNote}"
-            </div>
-          )}
           
-          {/* Analysis Section */}
-          {showAnalysis && (
-              <div className={`bg-black/30 border ${aesthetic.styles.border} rounded-lg p-4 mb-6 animate-fade-in relative overflow-hidden`}>
-                  <div className={`flex items-center gap-2 mb-2 ${aesthetic.styles.highlight} text-sm font-bold uppercase tracking-wider`}>
-                      <BrainCircuit size={16} /> Neural Analysis
+          <div className="flex gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleShare}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-xs font-bold ${copied ? 'bg-green-500/20 text-green-400 border border-green-500/50' : `bg-black/5 ${aesthetic.styles.subText} hover:${aesthetic.styles.text} hover:bg-black/10 border border-transparent hover:border-current/30`}`}
+            >
+              {copied ? <><Check size={14} /> Shared</> : <><Share2 size={14} /> Share</>}
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(site);
+              }}
+              className={`p-2 rounded-full transition-all ${isFavorite ? 'text-red-500 bg-red-500/10' : `${aesthetic.styles.subText} hover:${aesthetic.styles.text} bg-black/5 hover:bg-black/10`}`}
+            >
+              <Heart className={isFavorite ? "fill-current" : ""} size={18} />
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+          
+          <div className="md:col-span-8 space-y-6">
+            <h1 className={`text-4xl sm:text-5xl md:text-6xl font-display font-black ${aesthetic.styles.text} leading-[1.1] tracking-tight`}>
+              {site.title}
+            </h1>
+            
+            <p className={`text-lg sm:text-xl md:text-2xl ${aesthetic.styles.subText} leading-relaxed font-light max-w-2xl`}>
+              {site.description}
+            </p>
+
+            <div className="flex flex-wrap gap-2 pt-2">
+              {site.tags.map(tag => (
+                <button 
+                  key={tag} 
+                  onClick={() => onTagClick(tag)}
+                  className={`text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${selectedTag === tag ? 'bg-indigo-600 border-indigo-500 text-white' : `${aesthetic.styles.subText} bg-black/5 border-transparent hover:border-current/30 hover:${aesthetic.styles.text}`}`}
+                >
+                  <Tag size={10} /> {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Vibe Bento Box Area */}
+          <div className="md:col-span-4 flex flex-col gap-3">
+             {site.designVibe && (
+               <div className={`p-4 ${isBrutal ? 'rounded-none border-2' : 'rounded-2xl glass-panel'} ${aesthetic.styles.border}`}>
+                  <div className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-2`}>
+                     <Palette size={14} className={aesthetic.styles.accent} /> Design DNA
                   </div>
-                  {isAnalyzing ? (
-                      <div className={`flex items-center gap-3 ${aesthetic.styles.subText} text-sm py-4`}>
-                          <Loader2 size={16} className="animate-spin" /> Analyzing site patterns...
-                      </div>
-                  ) : (
-                      <p className={`text-sm ${aesthetic.styles.text} leading-relaxed font-mono`}>
-                          {analysisText || "Analysis unavailable."}
-                      </p>
-                  )}
-              </div>
+                  <div className={`text-sm sm:text-base font-semibold ${aesthetic.styles.text} leading-tight`}>{site.designVibe}</div>
+               </div>
+             )}
+             
+             {site.vibeScore !== undefined && (
+               <div className={`p-4 flex-1 ${isBrutal ? 'rounded-none border-2' : 'rounded-2xl glass-panel'} ${aesthetic.styles.border} flex flex-col justify-center`}>
+                  <div className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-3`}>
+                    <Gauge size={14} className={aesthetic.styles.highlight} /> Vibe Potency
+                  </div>
+                  <div className="flex items-end gap-3">
+                    <div className={`text-4xl font-display font-black text-glow ${aesthetic.styles.text} leading-none`}>{site.vibeScore}%</div>
+                  </div>
+                  <div className="w-full h-1.5 bg-black/10 rounded-full mt-4 overflow-hidden relative">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${site.vibeScore}%` }}
+                      transition={{ duration: 1, delay: 0.2 }}
+                      className={`absolute inset-y-0 left-0 ${aesthetic.styles.highlight.replace('text-', 'bg-')} shadow-[0_0_10px_currentColor]`} 
+                    />
+                  </div>
+               </div>
+             )}
+          </div>
+        </div>
+
+        {site.technicalStack && site.technicalStack.length > 0 && (
+           <div className={`mb-8 flex items-center gap-3 overflow-x-auto custom-scrollbar pb-2 ${aesthetic.styles.subText} border-y py-4 border-current/10`}>
+             <Cpu size={16} />
+             <span className="text-[10px] font-bold uppercase tracking-widest shrink-0">Tech Stack:</span>
+             <div className="flex gap-2 shrink-0">
+               {site.technicalStack.map(tech => (
+                 <span key={tech} className={`text-[10px] font-mono px-2 py-1 rounded glass-pill border ${aesthetic.styles.border}`}>
+                   {tech}
+                 </span>
+               ))}
+             </div>
+           </div>
+        )}
+
+        {/* Curator Note Terminal Output */}
+        {site.curatorNote && (
+          <motion.div 
+             initial={{ opacity: 0, x: -20 }}
+             animate={{ opacity: 1, x: 0 }}
+             transition={{ delay: 0.3 }}
+             className={`relative overflow-hidden ${isBrutal ? 'border-2' : 'border rounded-2xl'} ${aesthetic.styles.border} glass-panel p-5 sm:p-6 mb-8`}
+          >
+            <div className={`absolute top-0 w-full h-1 left-0 opacity-50 ${persona.color}`}></div>
+            <div className="flex gap-4 items-start relative z-10">
+                <div className={`p-2 rounded-xl ${persona.color} bg-opacity-20 shrink-0 shadow-lg`}>
+                  <Terminal size={24} className={persona.color.replace('bg-', 'text-')} />
+                </div>
+                <div className="flex-1">
+                   <div className={`text-[10px] uppercase font-bold tracking-[0.2em] font-mono ${aesthetic.styles.subText} mb-2 flex items-center gap-2`}>
+                       <span className={`w-2 h-2 rounded-full ${persona.color} animate-pulse`}></span>
+                       Connection from {persona.name}
+                   </div>
+                   <div className={`font-mono ${aesthetic.styles.text} text-sm sm:text-base leading-relaxed`}>
+                     <span className={aesthetic.styles.accent}>&gt;</span> {site.curatorNote}
+                     <motion.span 
+                        animate={{ opacity: [1, 0] }} 
+                        transition={{ repeat: Infinity, duration: 0.8 }}
+                        className={`inline-block w-2 h-4 align-middle ml-1 bg-current`}
+                     />
+                   </div>
+                </div>
+            </div>
+          </motion.div>
+        )}
+        
+        <AnimatePresence>
+          {showAnalysis && (
+              <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+              >
+                <div className={`${isBrutal ? 'border-2 rounded-none' : 'rounded-2xl border'} ${aesthetic.styles.border} glass-panel p-6 mb-8`}>
+                    <div className={`flex items-center gap-2 mb-4 ${aesthetic.styles.highlight} text-[10px] font-mono font-bold uppercase tracking-[0.2em]`}>
+                        <BrainCircuit size={14} className="animate-pulse" /> Neural Core Extractor
+                    </div>
+                    {isAnalyzing ? (
+                        <div className={`flex flex-col items-start gap-3 ${aesthetic.styles.subText} text-sm py-4 font-mono`}>
+                            <div className="flex items-center gap-3">
+                                <Loader2 size={14} className="animate-spin" /> 
+                                <span>Decrypting site intent...</span>
+                            </div>
+                            <div className="w-full h-1 bg-black/20 rounded shadow-inner overflow-hidden">
+                                <motion.div 
+                                    animate={{ width: ["0%", "100%"] }} 
+                                    transition={{ duration: 2, repeat: Infinity }} 
+                                    className={`h-full ${aesthetic.styles.highlight.replace('text-', 'bg-')}`} 
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className={`text-sm sm:text-base space-y-4 ${aesthetic.styles.text} leading-relaxed font-mono whitespace-pre-wrap p-4 bg-black/20 rounded-lg shadow-inner`}>
+                            <span className={`${aesthetic.styles.accent} opacity-50 select-none mr-2`}>$</span>
+                            {analysisText || "Neural link severed. Analysis failed."}
+                        </div>
+                    )}
+                </div>
+              </motion.div>
           )}
 
-          {/* Iframe Quick View Extension */}
           {showPreview && (
-              <div className={`w-full h-64 md:h-80 mb-6 rounded-lg overflow-hidden border ${aesthetic.styles.border} animate-fade-in relative bg-black/50 group/iframe`}>
-                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center opacity-50">
-                    <Loader2 size={32} className={`animate-spin ${aesthetic.styles.accent} mb-4`} />
-                    <p className={`text-sm ${aesthetic.styles.subText}`}>Establishing neural link...</p>
+              <motion.div 
+                 initial={{ height: 0, opacity: 0 }}
+                 animate={{ height: 400, opacity: 1 }}
+                 exit={{ height: 0, opacity: 0 }}
+                 className={`w-full mb-8 overflow-hidden ${isBrutal ? 'border-2 rounded-none' : 'rounded-2xl border'} ${aesthetic.styles.border} relative glass-panel group/iframe flex flex-col`}
+              >
+                 <div className={`p-2 border-b ${aesthetic.styles.border} bg-black/20 flex gap-2 items-center`}>
+                     <div className="flex gap-1.5 px-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+                     </div>
+                     <div className={`text-[9px] font-mono tracking-widest uppercase ${aesthetic.styles.subText} ml-2`}>
+                        {new URL(site.url).host}
+                     </div>
                  </div>
+                 
+                 <div className="absolute inset-0 top-8 flex flex-col items-center justify-center p-4 text-center -z-10">
+                    <Loader2 size={32} className={`animate-spin ${aesthetic.styles.accent} mb-4 opacity-30`} />
+                    <span className={`text-[10px] font-mono tracking-widest ${aesthetic.styles.subText} uppercase`}>Intercepting Transmission</span>
+                 </div>
+                 
                  <iframe 
                     src={site.url} 
-                    className="w-full h-full relative z-10 bg-white" 
+                    className="w-full flex-1 bg-white" 
                     sandbox="allow-scripts allow-same-origin"
                     title={`Preview of ${site.title}`}
                  />
-                 <div className="absolute inset-0 z-20 pointer-events-none border-b-2 border-transparent group-hover/iframe:border-cyan-400 transition-colors"></div>
-              </div>
+              </motion.div>
           )}
+        </AnimatePresence>
 
-          <div className="flex flex-wrap gap-2 mb-8">
-            {site.tags.map(tag => (
-              <button 
-                key={tag} 
-                onClick={() => onTagClick(tag)}
-                className={`text-xs px-2 py-1 rounded border transition-all ${selectedTag === tag ? 'bg-indigo-600 border-indigo-500 text-white' : `${aesthetic.styles.subText} bg-black/20 border-transparent hover:border-current hover:${aesthetic.styles.text}`}`}
-              >
-                #{tag}
-              </button>
-            ))}
-            {site.yearEstablished && (
-               <span className={`text-xs ${aesthetic.styles.subText} bg-black/20 px-2 py-1 rounded border border-transparent flex items-center gap-1 cursor-default`}>
-                <Calendar size={12} /> {site.yearEstablished}
-              </span>
-            )}
+        {/* Action Bar */}
+        <div className={`mt-auto pt-6 flex flex-col sm:flex-row gap-3 items-center justify-between`}>
+          <div className="flex gap-2 w-full sm:w-auto">
+             <button
+                onClick={() => setShowPreview(!showPreview)}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 ${showPreview ? aesthetic.styles.highlight + ' bg-black/10' : aesthetic.styles.subText + ' bg-transparent hover:bg-black/5 hover:' + aesthetic.styles.text} font-bold py-3 px-5 rounded-xl transition-all text-sm border border-current/10`}
+             >
+                {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
+                <span className="hidden sm:inline">{showPreview ? 'Close View' : 'Quick View'}</span>
+             </button>
+             {onFindSimilar && (
+                 <button
+                 onClick={() => onFindSimilar(site)}
+                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 ${aesthetic.styles.subText} font-bold py-3 px-5 rounded-xl border border-current/10 hover:bg-black/5 hover:${aesthetic.styles.text} transition-all text-sm`}
+                 >
+                 <Sparkles size={16} />
+                 <span className="hidden sm:inline">Similar</span>
+                 </button>
+             )}
+             {onAnalyze && (
+                 <button
+                     onClick={handleAnalyzeClick}
+                     className={`flex-1 sm:flex-none flex items-center justify-center gap-2 ${showAnalysis ? aesthetic.styles.highlight + ' bg-black/10' : aesthetic.styles.accent + ' border border-current/20 hover:bg-black/5'} font-bold py-3 px-5 rounded-xl transition-all text-sm`}
+                 >
+                     <BrainCircuit size={16} />
+                     <span className="hidden sm:inline">{showAnalysis ? 'Hide' : 'Analyze'}</span>
+                 </button>
+             )}
           </div>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onVisit}
+            className={`w-full sm:w-auto group/btn overflow-hidden relative flex items-center justify-center gap-3 bg-white text-slate-900 font-bold py-4 px-8 ${isBrutal ? 'rounded-none' : 'rounded-xl'} text-base sm:text-lg transition-all shadow-xl hover:shadow-2xl flex-1 max-w-sm`}
+          >
+            <div className="absolute inset-0 w-0 bg-slate-100 group-hover/btn:w-full transition-all duration-300 ease-out"></div>
+            <span className="relative flex items-center gap-2">
+              Launch Gateway
+              <ExternalLink size={20} className="group-hover/btn:rotate-45 transition-transform duration-300" />
+            </span>
+          </motion.button>
         </div>
 
-        <div className={`mt-auto pt-6 border-t ${aesthetic.styles.border} space-y-3`}>
-          <button
-            onClick={onVisit}
-            className={`w-full group/btn relative flex items-center justify-center gap-3 bg-white text-slate-900 font-bold py-4 px-6 rounded-lg text-lg hover:bg-gray-100 transition-all duration-300 transform hover:-translate-y-1 shadow-lg`}
-          >
-            Launch Website
-            <ExternalLink size={20} className="group-hover/btn:translate-x-1 transition-transform" />
+        <div className={`mt-6 text-center text-[11px] ${aesthetic.styles.subText} font-mono tracking-widest flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-6 opacity-60`}>
+          <button onClick={handleCopyUrl} className="flex items-center gap-1.5 hover:text-current transition-colors" title="Copy URL">
+              {copiedUrl ? <CheckCheck size={12} className="text-green-500" /> : <Copy size={12} />}
+              {new URL(site.url).hostname}
           </button>
-          
-          <div className="flex gap-2">
-            <button
-               onClick={() => setShowPreview(!showPreview)}
-               className={`flex-1 flex items-center justify-center gap-2 ${showPreview ? aesthetic.styles.highlight + ' bg-black/40' : aesthetic.styles.subText + ' bg-black/20 hover:bg-black/40 hover:' + aesthetic.styles.text} font-medium py-2 px-4 rounded-lg transition-colors text-sm`}
-            >
-               {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
-               {showPreview ? 'Close View' : 'Quick View'}
-            </button>
-            {onFindSimilar && (
-                <button
-                onClick={() => onFindSimilar(site)}
-                className={`flex-1 flex items-center justify-center gap-2 ${aesthetic.styles.subText} font-medium py-2 px-4 rounded-lg bg-black/20 hover:bg-black/40 hover:${aesthetic.styles.text} transition-colors text-sm`}
-                >
-                <Sparkles size={16} />
-                Similar
-                </button>
-            )}
-            
-            {onAnalyze && !showAnalysis && (
-                <button
-                    onClick={handleAnalyzeClick}
-                    className={`flex-1 flex items-center justify-center gap-2 ${aesthetic.styles.accent} font-medium py-2 px-4 rounded-lg bg-black/20 hover:bg-black/40 transition-colors text-sm cursor-help`}
-                    title="Let the AI curator perform a deep neural analysis of this site's purpose and design."
-                >
-                    <BrainCircuit size={16} />
-                    Analyze
-                </button>
-            )}
-          </div>
-
-          <div className={`text-center mt-3 text-xs ${aesthetic.styles.subText} flex justify-center items-center gap-4`}>
-            <span className="flex items-center gap-1">
-                Opens in a new tab • {new URL(site.url).hostname} 
-                <button onClick={handleCopyUrl} className="ml-1 p-1 hover:text-white transition-colors" title="Copy URL">
-                    {copiedUrl ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
-                </button>
-            </span>
-            <span className="hidden sm:inline-block opacity-50">• Press Space / ⮕ to Stumble</span>
-          </div>
+          <span className="hidden sm:inline-block">|</span>
+          <span className="hidden sm:inline-flex items-center gap-1.5">
+             <kbd className="px-1.5 py-0.5 rounded bg-black/10 border border-current/20">Space</kbd> 
+             to Stumble
+          </span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 });
 

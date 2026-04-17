@@ -176,16 +176,16 @@ export const fetchRecommendations = async (
 
     Return JSON array in \`\`\`json format:
     [{ 
-      "title": "...", 
-      "url": "https://...", 
-      "description": "...", 
+      "title": "<Actual Website Title>", 
+      "url": "<Valid https:// URL>", 
+      "description": "<Engaging 1-2 sentence description>", 
       "category": "One of: ${Object.values(Category).join(', ')}", 
-      "tags": ["t1", "t2"], 
-      "yearEstablished": "YYYY", 
+      "tags": ["<tag1>", "<tag2>"], 
+      "yearEstablished": "<YYYY>", 
       "curatorNote": "Write a 2-3 sentence paragraph in your exact character's voice explaining why you selected this site and what you want the user to feel.",
-      "designVibe": "e.g. Minimalist Glitch",
-      "technicalStack": ["React", "WebGL"],
-      "vibeScore": 85
+      "designVibe": "<e.g. Minimalist Glitch>",
+      "technicalStack": ["<tech1>", "<tech2>"],
+      "vibeScore": <number 1-100>
     }]
   `;
 
@@ -235,16 +235,16 @@ export const searchSites = async (
 
     Return JSON array in \`\`\`json format:
     [{ 
-      "title": "...", 
-      "url": "https://...", 
-      "description": "...", 
+      "title": "<Actual Website Title>", 
+      "url": "<Valid https:// URL>", 
+      "description": "<Engaging 1-2 sentence description>", 
       "category": "One of: ${Object.values(Category).join(', ')}", 
-      "tags": ["t1", "t2"], 
-      "yearEstablished": "YYYY", 
+      "tags": ["<tag1>", "<tag2>"], 
+      "yearEstablished": "<YYYY>", 
       "curatorNote": "Write a 2-3 sentence paragraph in your exact character's twisted voice explaining why you selected this search result.",
-      "designVibe": "Thematic vibe",
-      "technicalStack": [],
-      "vibeScore": 60
+      "designVibe": "<Thematic vibe>",
+      "technicalStack": ["<tech1>"],
+      "vibeScore": <number 1-100>
     }]
   `;
 
@@ -294,16 +294,16 @@ export const findSimilarSites = async (
 
     Return JSON array in \`\`\`json format:
     [{ 
-      "title": "...", 
-      "url": "https://...", 
-      "description": "...", 
+      "title": "<Actual Website Title>", 
+      "url": "<Valid https:// URL>", 
+      "description": "<Engaging 1-2 sentence description>", 
       "category": "One of: ${Object.values(Category).join(', ')}", 
-      "tags": ["t1", "t2"], 
-      "yearEstablished": "YYYY", 
+      "tags": ["<tag1>", "<tag2>"], 
+      "yearEstablished": "<YYYY>", 
       "curatorNote": "Write a 2-3 sentence paragraph in an eccentric curator's voice explaining why this site is a worthy successor to the original.",
-      "designVibe": "Similar aesthetic",
-      "technicalStack": [],
-      "vibeScore": 75
+      "designVibe": "<Similar aesthetic>",
+      "technicalStack": ["<tech1>"],
+      "vibeScore": <number 1-100>
     }]
   `;
 
