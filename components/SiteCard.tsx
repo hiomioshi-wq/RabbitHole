@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Site, Aesthetic, CuratorPersona, TimeEra } from '../types';
 import { CATEGORY_COLORS } from '../constants';
 import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck, Tag, Terminal } from 'lucide-react';
@@ -20,6 +20,14 @@ interface SiteCardProps {
   isAnalyzing?: boolean;
 }
 
+const ANALYSIS_PHRASES = [
+    "Decrypting site intent...",
+    "Extracting semantic nodes...",
+    "Bypassing mainframe protocols...",
+    "Calculating vibe resonance...",
+    "Synthesizing curator perspectives..."
+];
+
 export const SiteCard: React.FC<SiteCardProps> = React.memo(({ 
   site, 
   aesthetic,
@@ -39,6 +47,19 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isAnalyzing) {
+        interval = setInterval(() => {
+            setLoadingPhraseIndex(prev => (prev + 1) % ANALYSIS_PHRASES.length);
+        }, 1500);
+    } else {
+        setLoadingPhraseIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [isAnalyzing]);
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -51,8 +72,11 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
                 text: shareText,
                 url: site.url
             });
-        } catch (err) {
-            console.error("Error sharing:", err);
+        } catch (err: any) {
+            if (err.name !== 'AbortError') {
+                console.error("Error sharing:", err);
+            }
+            // Optional: fallback to clipboard on non-user-abort errors if desired
         }
     } else {
         await navigator.clipboard.writeText(shareText);
@@ -77,12 +101,37 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
 
   // Extract the main styling blocks for readability
   const isBrutal = aesthetic.id === 'brutal';
-  const glowClasses = aesthetic.id === 'cyber' ? 'bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600' : 
-                      aesthetic.id === 'vapor' ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-yellow-400' : 
-                      aesthetic.id === 'solar' ? 'bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400' : 
-                      aesthetic.id === 'matrix' ? 'bg-gradient-to-r from-green-900 via-green-400 to-green-900' :
-                      aesthetic.id === 'academic' ? 'bg-gradient-to-r from-amber-700 via-amber-200 to-amber-900' :
-                      'bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600';
+  const getGlowClasses = () => {
+    switch (aesthetic.id) {
+      case 'cyber': return 'bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600';
+      case 'vapor': return 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-yellow-400';
+      case 'solar': return 'bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400';
+      case 'matrix': return 'bg-gradient-to-r from-green-900 via-green-400 to-green-900';
+      case 'academic': return 'bg-gradient-to-r from-amber-700 via-amber-200 to-amber-900';
+      case 'blood': return 'bg-gradient-to-r from-red-900 via-red-600 to-red-900';
+      case 'circuit': return 'bg-gradient-to-r from-blue-900 via-cyan-400 to-blue-900';
+      case 'pixel': return 'bg-gradient-to-br from-green-500 via-yellow-500 to-red-500';
+      case 'gothic_digital': return 'bg-gradient-to-r from-fuchsia-900 via-fuchsia-600 to-fuchsia-900';
+      case 'bio': return 'bg-gradient-to-r from-emerald-900 via-lime-400 to-emerald-900';
+      case 'industrial': return 'bg-gradient-to-r from-orange-950 via-orange-600 to-orange-950';
+      case 'holy': return 'bg-gradient-to-r from-amber-200 via-white to-amber-200';
+      default: return 'bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600';
+    }
+  };
+  const glowClasses = getGlowClasses();
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, type: 'spring', bounce: 0.4 } }
+  };
 
   return (
     <motion.div 
@@ -97,23 +146,38 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
         <div className={`absolute -inset-1 rounded-[2rem] blur-xl opacity-20 group-hover:opacity-40 transition duration-1000 ${glowClasses}`}></div>
       )}
       
-      <div className={`relative ${aesthetic.styles.cardBg} ${isBrutal ? 'border-4' : 'border'} ${aesthetic.styles.border} ${isBrutal ? 'rounded-none' : 'rounded-3xl'} p-6 sm:p-10 shadow-2xl overflow-hidden flex flex-col justify-between transform transition-all duration-500 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)]`}>
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className={`relative ${aesthetic.styles.cardBg} ${isBrutal ? 'border-4' : 'border'} ${aesthetic.styles.border} ${isBrutal ? 'rounded-none' : 'rounded-3xl'} p-6 sm:p-10 shadow-2xl overflow-hidden flex flex-col justify-between transform transition-all duration-500 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)]`}
+      >
         
         {/* Decorative Grid/Watermark */}
-        <div className={`absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none ${aesthetic.styles.text}`}>
+        <motion.div 
+          whileHover={{ rotate: 180, scale: 1.1 }}
+          transition={{ duration: 2, ease: "easeInOut" }}
+          className={`absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none ${aesthetic.styles.text}`}
+        >
           <Hash size={400} className="transform rotate-12 translate-x-1/4 -translate-y-1/4" />
-        </div>
+        </motion.div>
 
         {/* Top Header Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
-             <span className={`${CATEGORY_COLORS[site.category] || 'bg-slate-600'} text-white text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1`}>
+             <motion.span 
+               whileHover={{ scale: 1.05 }}
+               className={`${CATEGORY_COLORS[site.category] || 'bg-slate-600'} text-white text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 cursor-default`}
+             >
                {site.category}
-             </span>
+             </motion.span>
              {site.yearEstablished && (
-               <span className={`text-[10px] sm:text-xs ${aesthetic.styles.subText} bg-black/5 px-3 py-1.5 rounded-full border border-current/10 flex items-center gap-1.5 font-mono`}>
+               <motion.span 
+                 whileHover={{ scale: 1.05 }}
+                 className={`text-[10px] sm:text-xs ${aesthetic.styles.subText} bg-black/5 px-3 py-1.5 rounded-full border border-current/10 flex items-center gap-1.5 font-mono cursor-default`}
+               >
                  <Calendar size={12} /> {site.yearEstablished}
-               </span>
+               </motion.span>
              )}
           </div>
           
@@ -138,35 +202,46 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
               <Heart className={isFavorite ? "fill-current" : ""} size={18} />
             </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Main Content Area */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+        <motion.div variants={itemVariants} className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
           
           <div className="md:col-span-8 space-y-6">
-            <h1 className={`text-4xl sm:text-5xl md:text-6xl font-display font-black ${aesthetic.styles.text} leading-[1.1] tracking-tight`}>
+            <motion.h1 
+              variants={itemVariants}
+              className={`text-4xl sm:text-5xl md:text-6xl font-display font-black ${aesthetic.styles.text} leading-[1.1] tracking-tight`}
+            >
               {site.title}
-            </h1>
+            </motion.h1>
             
-            <p className={`text-lg sm:text-xl md:text-2xl ${aesthetic.styles.subText} leading-relaxed font-light max-w-2xl`}>
+            <motion.p variants={itemVariants} className={`text-lg sm:text-xl md:text-2xl ${aesthetic.styles.subText} leading-relaxed font-light max-w-2xl`}>
               {site.description}
-            </p>
+            </motion.p>
 
-            <div className="flex flex-wrap gap-2 pt-2">
-              {site.tags.map(tag => (
-                <button 
-                  key={tag} 
-                  onClick={() => onTagClick(tag)}
-                  className={`text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${selectedTag === tag ? 'bg-indigo-600 border-indigo-500 text-white' : `${aesthetic.styles.subText} bg-black/5 border-transparent hover:border-current/30 hover:${aesthetic.styles.text}`}`}
-                >
-                  <Tag size={10} /> {tag}
-                </button>
-              ))}
-            </div>
+            <motion.div variants={itemVariants} className="flex flex-wrap gap-2 pt-2">
+              <AnimatePresence>
+                {site.tags.map(tag => (
+                  <motion.button 
+                    layout="position"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    key={tag} 
+                    onClick={() => onTagClick(tag)}
+                    className={`text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${selectedTag === tag ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : `${aesthetic.styles.subText} bg-black/5 border-transparent hover:border-current/30 hover:${aesthetic.styles.text}`}`}
+                  >
+                    <Tag size={10} /> {tag}
+                  </motion.button>
+                ))}
+              </AnimatePresence>
+            </motion.div>
           </div>
 
           {/* Vibe Bento Box Area */}
-          <div className="md:col-span-4 flex flex-col gap-3">
+          <motion.div variants={itemVariants} className="md:col-span-4 flex flex-col gap-3">
              {site.designVibe && (
                <div className={`p-4 ${isBrutal ? 'rounded-none border-2' : 'rounded-2xl glass-panel'} ${aesthetic.styles.border}`}>
                   <div className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-2`}>
@@ -188,27 +263,31 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${site.vibeScore}%` }}
-                      transition={{ duration: 1, delay: 0.2 }}
+                      transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
                       className={`absolute inset-y-0 left-0 ${aesthetic.styles.highlight.replace('text-', 'bg-')} shadow-[0_0_10px_currentColor]`} 
                     />
                   </div>
                </div>
              )}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {site.technicalStack && site.technicalStack.length > 0 && (
-           <div className={`mb-8 flex items-center gap-3 overflow-x-auto custom-scrollbar pb-2 ${aesthetic.styles.subText} border-y py-4 border-current/10`}>
+           <motion.div variants={itemVariants} className={`mb-8 flex items-center gap-3 overflow-x-auto custom-scrollbar pb-2 ${aesthetic.styles.subText} border-y py-4 border-current/10`}>
              <Cpu size={16} />
              <span className="text-[10px] font-bold uppercase tracking-widest shrink-0">Tech Stack:</span>
              <div className="flex gap-2 shrink-0">
-               {site.technicalStack.map(tech => (
-                 <span key={tech} className={`text-[10px] font-mono px-2 py-1 rounded glass-pill border ${aesthetic.styles.border}`}>
+               {site.technicalStack.map((tech) => (
+                 <motion.span 
+                   whileHover={{ scale: 1.1, y: -2 }}
+                   key={tech} 
+                   className={`text-[10px] font-mono px-2 py-1 rounded glass-pill border cursor-default ${aesthetic.styles.border}`}
+                 >
                    {tech}
-                 </span>
+                 </motion.span>
                ))}
              </div>
-           </div>
+           </motion.div>
         )}
 
         {/* Curator Note Terminal Output */}
@@ -251,14 +330,27 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
                   className="overflow-hidden"
               >
                 <div className={`${isBrutal ? 'border-2 rounded-none' : 'rounded-2xl border'} ${aesthetic.styles.border} glass-panel p-6 mb-8`}>
-                    <div className={`flex items-center gap-2 mb-4 ${aesthetic.styles.highlight} text-[10px] font-mono font-bold uppercase tracking-[0.2em]`}>
+                    <motion.div initial={{ x: -20, opacity: 0}} animate={{ x: 0, opacity: 1}} transition={{ delay: 0.2 }} className={`flex items-center gap-2 mb-4 ${aesthetic.styles.highlight} text-[10px] font-mono font-bold uppercase tracking-[0.2em]`}>
                         <BrainCircuit size={14} className="animate-pulse" /> Neural Core Extractor
-                    </div>
+                    </motion.div>
                     {isAnalyzing ? (
                         <div className={`flex flex-col items-start gap-3 ${aesthetic.styles.subText} text-sm py-4 font-mono`}>
-                            <div className="flex items-center gap-3">
-                                <Loader2 size={14} className="animate-spin" /> 
-                                <span>Decrypting site intent...</span>
+                            <div className="flex items-center gap-3 w-full">
+                                <Loader2 size={14} className="animate-spin shrink-0" /> 
+                                <div className="h-[20px] overflow-hidden relative flex-1">
+                                    <AnimatePresence mode="popLayout">
+                                        <motion.span 
+                                            key={loadingPhraseIndex}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="absolute inset-0 whitespace-nowrap"
+                                        >
+                                            {ANALYSIS_PHRASES[loadingPhraseIndex]}
+                                        </motion.span>
+                                    </AnimatePresence>
+                                </div>
                             </div>
                             <div className="w-full h-1 bg-black/20 rounded shadow-inner overflow-hidden">
                                 <motion.div 
@@ -269,10 +361,10 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
                             </div>
                         </div>
                     ) : (
-                        <div className={`text-sm sm:text-base space-y-4 ${aesthetic.styles.text} leading-relaxed font-mono whitespace-pre-wrap p-4 bg-black/20 rounded-lg shadow-inner`}>
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`text-sm sm:text-base space-y-4 ${aesthetic.styles.text} leading-relaxed font-mono whitespace-pre-wrap p-4 bg-black/20 rounded-lg shadow-inner`}>
                             <span className={`${aesthetic.styles.accent} opacity-50 select-none mr-2`}>$</span>
                             {analysisText || "Neural link severed. Analysis failed."}
-                        </div>
+                        </motion.div>
                     )}
                 </div>
               </motion.div>
@@ -312,38 +404,44 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
         </AnimatePresence>
 
         {/* Action Bar */}
-        <div className={`mt-auto pt-6 flex flex-col sm:flex-row gap-3 items-center justify-between`}>
+        <motion.div variants={itemVariants} className={`mt-auto pt-6 flex flex-col sm:flex-row gap-3 items-center justify-between`}>
           <div className="flex gap-2 w-full sm:w-auto">
-             <button
+             <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setShowPreview(!showPreview)}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 ${showPreview ? aesthetic.styles.highlight + ' bg-black/10' : aesthetic.styles.subText + ' bg-transparent hover:bg-black/5 hover:' + aesthetic.styles.text} font-bold py-3 px-5 rounded-xl transition-all text-sm border border-current/10`}
              >
                 {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
                 <span className="hidden sm:inline">{showPreview ? 'Close View' : 'Quick View'}</span>
-             </button>
+             </motion.button>
              {onFindSimilar && (
-                 <button
+                 <motion.button
+                 whileHover={{ scale: 1.05 }}
+                 whileTap={{ scale: 0.95 }}
                  onClick={() => onFindSimilar(site)}
                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 ${aesthetic.styles.subText} font-bold py-3 px-5 rounded-xl border border-current/10 hover:bg-black/5 hover:${aesthetic.styles.text} transition-all text-sm`}
                  >
                  <Sparkles size={16} />
                  <span className="hidden sm:inline">Similar</span>
-                 </button>
+                 </motion.button>
              )}
              {onAnalyze && (
-                 <button
+                 <motion.button
+                     whileHover={{ scale: 1.05 }}
+                     whileTap={{ scale: 0.95 }}
                      onClick={handleAnalyzeClick}
                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 ${showAnalysis ? aesthetic.styles.highlight + ' bg-black/10' : aesthetic.styles.accent + ' border border-current/20 hover:bg-black/5'} font-bold py-3 px-5 rounded-xl transition-all text-sm`}
                  >
                      <BrainCircuit size={16} />
                      <span className="hidden sm:inline">{showAnalysis ? 'Hide' : 'Analyze'}</span>
-                 </button>
+                 </motion.button>
              )}
           </div>
 
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onVisit}
             className={`w-full sm:w-auto group/btn overflow-hidden relative flex items-center justify-center gap-3 bg-white text-slate-900 font-bold py-4 px-8 ${isBrutal ? 'rounded-none' : 'rounded-xl'} text-base sm:text-lg transition-all shadow-xl hover:shadow-2xl flex-1 max-w-sm`}
           >
@@ -353,20 +451,20 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
               <ExternalLink size={20} className="group-hover/btn:rotate-45 transition-transform duration-300" />
             </span>
           </motion.button>
-        </div>
+        </motion.div>
 
-        <div className={`mt-6 text-center text-[11px] ${aesthetic.styles.subText} font-mono tracking-widest flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-6 opacity-60`}>
-          <button onClick={handleCopyUrl} className="flex items-center gap-1.5 hover:text-current transition-colors" title="Copy URL">
+        <motion.div variants={itemVariants} className={`mt-6 text-center text-[11px] ${aesthetic.styles.subText} font-mono tracking-widest flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-6 opacity-60`}>
+          <motion.button whileHover={{ scale: 1.1 }} onClick={handleCopyUrl} className="flex items-center gap-1.5 hover:text-current transition-colors" title="Copy URL">
               {copiedUrl ? <CheckCheck size={12} className="text-green-500" /> : <Copy size={12} />}
               {new URL(site.url).hostname}
-          </button>
+          </motion.button>
           <span className="hidden sm:inline-block">|</span>
           <span className="hidden sm:inline-flex items-center gap-1.5">
-             <kbd className="px-1.5 py-0.5 rounded bg-black/10 border border-current/20">Space</kbd> 
+             <motion.kbd whileHover={{ scale: 1.1, backgroundColor: 'rgba(0,0,0,0.5)' }} className="px-1.5 py-0.5 rounded bg-black/10 border border-current/20 cursor-pointer">Space</motion.kbd> 
              to Stumble
           </span>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </motion.div>
   );
 });

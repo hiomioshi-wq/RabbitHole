@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal } from 'lucide-react';
+import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Site, Category, FetchStatus, CuratorPersona, AIModel, Aesthetic, TimeEra } from './types';
 import { INITIAL_SITES, CATEGORY_COLORS, CURATOR_PERSONAS, AI_MODELS, AESTHETICS, TIME_ERAS } from './constants';
@@ -65,6 +65,11 @@ const playSound = (type: 'static' | 'blip' | 'success') => {
 
 // --- Hook for local storage ---
 function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+  useEffect(() => {
+    console.log("%c 🐇 RABBIT HOLE INITIALIZED ", "background: #6366f1; color: white; font-weight: bold; padding: 4px; border-radius: 4px;");
+    console.log("%c Descending into the obscure web... ", "color: #818cf8; font-style: italic;");
+  }, []);
+
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
@@ -169,6 +174,7 @@ const App: React.FC = () => {
   
   const [searchResults, setSearchResults] = useState<Site[] | null>(null);
   const [showConfig, setShowConfig] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<'search' | 'stumble' | 'similar'>('stumble');
   const [currentAnalysis, setCurrentAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
@@ -179,6 +185,7 @@ const App: React.FC = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isNeuralLinkModalOpen, setIsNeuralLinkModalOpen] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [submittedSites, setSubmittedSites] = useLocalStorage<any[]>('rabbithole_submissions', []);
   const [soundEnabled, setSoundEnabled] = useLocalStorage('rabbithole_sound', true);
@@ -252,6 +259,7 @@ const App: React.FC = () => {
 
     playSound('static');
     setStatus('loading');
+    setLoadingAction('search');
     setShowWelcome(false);
     setIsSearchActive(true);
     setCurrentAnalysis(null);
@@ -304,6 +312,7 @@ const App: React.FC = () => {
   const handleFindSimilar = async (site: Site) => {
     playSound('static');
     setStatus('loading');
+    setLoadingAction('similar');
     setSiteQueue([]);
     setCurrentAnalysis(null);
     setIsSearchActive(true);
@@ -396,6 +405,7 @@ const App: React.FC = () => {
   const handleStumble = useCallback(async () => {
     playSound('static');
     setStatus('loading');
+    setLoadingAction('stumble');
     setShowWelcome(false);
     setCurrentAnalysis(null);
     setSearchResults(null);
@@ -457,73 +467,91 @@ const App: React.FC = () => {
     setSiteQueue([]);
   }, [activePersona, activeModel, activeAesthetic, activeEra]);
 
-  const NeuralLoading = () => (
-    <motion.div 
-       initial={{ opacity: 0, scale: 0.9 }}
-       animate={{ opacity: 1, scale: 1 }}
-       className="text-center relative flex flex-col items-center"
-    >
-       <div className="relative w-40 h-40 mx-auto mb-10 flex items-center justify-center">
-          {/* Outer Rotating Ring */}
-          <motion.div 
-             animate={{ rotate: 360 }} 
-             transition={{ duration: 8, ease: "linear", repeat: Infinity }}
-             className={`absolute inset-0 rounded-full border border-dashed ${activeAesthetic.styles.border} opacity-50`} 
-          />
-          {/* Inner Counter-Rotating Ring */}
-          <motion.div 
-             animate={{ rotate: -360 }} 
-             transition={{ duration: 12, ease: "linear", repeat: Infinity }}
-             className={`absolute inset-4 rounded-full border-t flex-1 ${activeAesthetic.styles.border}`} 
-          />
-          {/* Core Pulse */}
-          <motion.div 
-             animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} 
-             transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
-             className={`absolute w-16 h-16 rounded-full blur-xl ${activeAesthetic.styles.highlight.replace('text-', 'bg-')}`} 
-          />
-          {/* Icon */}
-          <div className="relative z-10 glass-pill p-4">
-             <BrainCircuit className={activeAesthetic.styles.accent} size={32} />
-          </div>
-       </div>
-       
-       <div className="space-y-4 max-w-sm w-full mx-auto">
-          <motion.div 
-             animate={{ opacity: [0.4, 1, 0.4] }} 
-             transition={{ duration: 1.5, repeat: Infinity }}
-             className={`font-display text-2xl tracking-[0.3em] font-black uppercase text-glow ${activeAesthetic.styles.text}`}
-          >
-             Decrypting
-          </motion.div>
-          
-          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden relative">
-             <motion.div 
-                 initial={{ width: "0%" }}
-                 animate={{ width: "100%" }}
-                 transition={{ duration: 3, ease: "easeInOut", repeat: Infinity }}
-                 className={`absolute inset-y-0 left-0 ${activeAesthetic.styles.accent.replace('text-', 'bg-')}`}
-             />
-          </div>
+  const NeuralLoading = () => {
+    let title = "DECRYPTING";
+    let subtitle = `Cross-referencing ${activeEra.name} archives`;
+    
+    if (loadingAction === 'search') {
+        title = "SEARCHING";
+        subtitle = `Querying neural nets for "${searchQuery}"`;
+    } else if (loadingAction === 'similar') {
+        title = "ANALYZING";
+        subtitle = `Finding patterns matching current entity`;
+    } else if (loadingAction === 'stumble') {
+        title = "TRAVERSING";
+        subtitle = `Locating next node in ${selectedCategory !== Category.ALL ? selectedCategory : 'the void'}`;
+    }
 
-          <p className={`${activeAesthetic.styles.subText} text-[10px] font-mono uppercase tracking-widest flex items-center justify-center gap-2`}>
-             <RefreshCw size={10} className="animate-spin" /> Cross-referencing {activeEra.name} archives
-          </p>
-          
-          {activeModel.supportsThinking && thinkingBudget > 0 && (
-             <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className={`inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full glass-panel`}
-             >
-                <Zap size={10} className={`${activeAesthetic.styles.highlight} animate-pulse`} />
-                <span className={`text-[9px] font-mono tracking-widest ${activeAesthetic.styles.text}`}>COMPUTING: {thinkingBudget} FLOPs</span>
-             </motion.div>
-          )}
-       </div>
-    </motion.div>
-  );
+    return (
+      <motion.div 
+         initial={{ opacity: 0, scale: 0.9 }}
+         animate={{ opacity: 1, scale: 1 }}
+         className={`text-center relative flex flex-col items-center ${activeAesthetic.styles.font || 'font-sans'}`}
+      >
+         <div className="relative w-40 h-40 mx-auto mb-10 flex items-center justify-center">
+            {/* Outer Rotating Ring */}
+            <motion.div 
+               animate={{ rotate: 360 }} 
+               transition={{ duration: 8, ease: "linear", repeat: Infinity }}
+               className={`absolute inset-0 rounded-full border border-dashed ${activeAesthetic.styles.border} opacity-50`} 
+            />
+            {/* Inner Counter-Rotating Ring */}
+            <motion.div 
+               animate={{ rotate: -360 }} 
+               transition={{ duration: 12, ease: "linear", repeat: Infinity }}
+               className={`absolute inset-4 rounded-full border-t flex-1 ${activeAesthetic.styles.border}`} 
+            />
+            {/* Core Pulse */}
+            <motion.div 
+               animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} 
+               transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
+               className={`absolute w-16 h-16 rounded-full blur-xl ${activeAesthetic.styles.highlight.replace('text-', 'bg-')}`} 
+            />
+            {/* Icon */}
+            <div className="relative z-10 glass-pill p-4">
+               {loadingAction === 'search' ? <Search className={activeAesthetic.styles.accent} size={32} /> : 
+                loadingAction === 'similar' ? <Shuffle className={activeAesthetic.styles.accent} size={32} /> : 
+                <BrainCircuit className={activeAesthetic.styles.accent} size={32} />}
+            </div>
+         </div>
+         
+         <div className="space-y-4 max-w-sm w-full mx-auto">
+            <motion.div 
+               animate={{ opacity: [0.4, 1, 0.4] }} 
+               transition={{ duration: 1.5, repeat: Infinity }}
+               className={`font-display text-2xl tracking-[0.3em] font-black uppercase text-glow ${activeAesthetic.styles.text}`}
+            >
+               {title}
+            </motion.div>
+            
+            <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden relative">
+               <motion.div 
+                   initial={{ width: "0%" }}
+                   animate={{ width: "100%" }}
+                   transition={{ duration: 3, ease: "easeInOut", repeat: Infinity }}
+                   className={`absolute inset-y-0 left-0 ${activeAesthetic.styles.accent.replace('text-', 'bg-')}`}
+               />
+            </div>
+
+            <p className={`${activeAesthetic.styles.subText} text-[10px] font-mono uppercase tracking-widest flex items-center justify-center gap-2`}>
+               <RefreshCw size={10} className="animate-spin" /> {subtitle}
+            </p>
+            
+            {activeModel.supportsThinking && thinkingBudget > 0 && (
+               <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className={`inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full glass-panel`}
+               >
+                  <Zap size={10} className={`${activeAesthetic.styles.highlight} animate-pulse`} />
+                  <span className={`text-[9px] font-mono tracking-widest ${activeAesthetic.styles.text}`}>COMPUTING: {thinkingBudget} FLOPs</span>
+               </motion.div>
+            )}
+         </div>
+      </motion.div>
+    );
+  };
 
   // Auto Stumble Logic
   useEffect(() => {
@@ -608,7 +636,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${activeAesthetic.styles.bg} ${activeAesthetic.styles.text} font-sans transition-colors duration-700 flex flex-col relative overflow-hidden`}>
+    <div className={`min-h-screen ${activeAesthetic.styles.bg} ${activeAesthetic.styles.text} ${activeAesthetic.styles.font || 'font-sans'} transition-colors duration-700 flex flex-col relative overflow-hidden`}>
       
       {/* Dynamic Background Noise */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0">
@@ -623,11 +651,23 @@ const App: React.FC = () => {
       {/* Matrix Rain Effect */}
       {activeAesthetic.id === 'matrix' && <MatrixRain />}
 
+      {/* Grid Effect for technical aesthetics */}
+      {(activeAesthetic.id === 'cyber' || activeAesthetic.id === 'circuit' || activeAesthetic.id === 'industrial') && (
+        <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.05]" style={{ backgroundImage: `radial-gradient(${activeAesthetic.styles.accent.replace('text-', '')} 1px, transparent 0)`, backgroundSize: '40px 40px' }}></div>
+      )}
+
       {/* CRT Scanline Effect */}
       {retroMode && (
-        <div className="fixed inset-0 pointer-events-none z-50 opacity-[0.05] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
+        <div className="fixed inset-0 pointer-events-none z-50 opacity-[0.07] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]">
+          <div className="absolute inset-0 animate-pulse bg-white/5 mix-blend-overlay"></div>
+        </div>
       )}
       
+      {/* 8-Bit Pixel Grid */}
+      {activeAesthetic.id === 'pixel' && (
+        <div className="fixed inset-0 pointer-events-none z-0 opacity-10" style={{ backgroundImage: 'linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000)', backgroundSize: '4px 4px', backgroundPosition: '0 0, 2px 2px' }}></div>
+      )}
+
       {/* Loading Static Overlay */}
       {status === 'loading' && (
         <div className="fixed inset-0 pointer-events-none z-40 opacity-10 animate-pulse bg-white mix-blend-overlay"></div>
@@ -644,22 +684,22 @@ const App: React.FC = () => {
             </span>
          </div>
 
-         {/* Compact Search */}
-         <div className="flex-1 max-w-md hidden sm:block relative group">
-             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-               <Search size={14} className={`${activeAesthetic.styles.subText}`} />
-             </div>
-             <form onSubmit={(e) => handleSearch(e)}>
-               <input 
-                 ref={searchInputRef}
-                 type="text" 
-                 placeholder={`Ask ${activePersona.name}...`} 
-                 className={`w-full bg-white/5 border border-white/10 ${activeAesthetic.styles.text} text-sm rounded-full focus:bg-white/10 focus:ring-1 focus:ring-current focus:border-transparent block pl-9 p-2 transition-all outline-none backdrop-blur-md`}
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-               />
-             </form>
-         </div>
+          {/* Search Bar */}
+          <div className="flex-1 max-w-md relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={14} className={`${activeAesthetic.styles.subText} group-focus-within:${activeAesthetic.styles.accent}`} />
+              </div>
+              <form onSubmit={(e) => handleSearch(e)} className="w-full">
+                <input 
+                  ref={searchInputRef}
+                  type="text" 
+                  placeholder={`Search ${activePersona.name}...`} 
+                  className={`w-full bg-white/5 border border-white/10 ${activeAesthetic.styles.text} text-xs sm:text-sm rounded-full focus:bg-white/10 focus:ring-1 focus:ring-current focus:border-transparent block pl-9 p-1.5 sm:p-2 transition-all outline-none backdrop-blur-md`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </form>
+          </div>
 
          {/* Actions */}
          <div className="flex items-center gap-2 flex-shrink-0 relative">
@@ -673,148 +713,216 @@ const App: React.FC = () => {
                  <Settings size={18} />
              </button>
              
+             <AnimatePresence>
              {showConfig && (
                  <>
-                     <div className="fixed inset-0 z-40" onClick={() => setShowConfig(false)}></div>
-                     <div className="absolute top-[120%] right-0 w-[90vw] max-w-sm glass-panel rounded-2xl shadow-2xl z-50 p-6 overscroll-contain max-h-[80vh] overflow-y-auto custom-scrollbar border-white/20 backdrop-blur-3xl bg-black/80 origin-top-right animate-fade-in text-left">
-                         <div className="flex justify-between items-center mb-6">
-                             <h3 className={`font-display font-bold ${activeAesthetic.styles.text}`}>Configuration</h3>
-                             <button onClick={() => setShowConfig(false)} className={`${activeAesthetic.styles.subText} hover:text-white`}><X size={20}/></button>
+                     <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }} 
+                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" 
+                        onClick={() => setShowConfig(false)}
+                     ></motion.div>
+                     <motion.div 
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        className="absolute top-[120%] right-0 w-[90vw] max-w-sm glass-panel rounded-2xl shadow-2xl z-50 p-6 overscroll-contain max-h-[80vh] overflow-y-auto custom-scrollbar border-white/20 backdrop-blur-3xl bg-black/80 origin-top-right text-left"
+                     >
+                         <div className="flex justify-between items-center mb-6 text-left">
+                             <div className="flex flex-col">
+                                <h3 className={`font-display font-medium text-xs tracking-widest uppercase ${activeAesthetic.styles.subText}`}>Terminal Interface</h3>
+                                <h2 className={`text-xl font-bold font-display ${activeAesthetic.styles.text}`}>Configuration</h2>
+                             </div>
+                             <button onClick={() => setShowConfig(false)} className={`${activeAesthetic.styles.subText} hover:text-white p-2`}><X size={20}/></button>
                          </div>
 
                          {/* Actions Component */}
                          <div className="grid grid-cols-2 gap-2 mb-6">
-                            <button onClick={randomizeConfig} className={`flex items-center justify-center gap-2 p-3 rounded-xl border ${activeAesthetic.styles.border} hover:bg-white/10 transition-all ${activeAesthetic.styles.text} text-[10px] font-bold uppercase tracking-wider`}>
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={randomizeConfig} className={`flex items-center justify-center gap-2 p-3 rounded-xl border ${activeAesthetic.styles.border} hover:bg-white/10 transition-all ${activeAesthetic.styles.text} text-[10px] font-bold uppercase tracking-wider`}>
                                 <Shuffle size={14} className={activeAesthetic.styles.accent} /> Roll Dice
-                            </button>
-                            <button onClick={() => { setRetroMode(!retroMode); playSound('blip'); }} className={`flex items-center justify-center gap-2 p-3 rounded-xl border ${activeAesthetic.styles.border} transition-all ${retroMode ? `bg-white/20 ${activeAesthetic.styles.accent}` : `hover:bg-white/10 ${activeAesthetic.styles.text}`} text-[10px] font-bold uppercase tracking-wider`}>
+                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { setRetroMode(!retroMode); playSound('blip'); }} className={`flex items-center justify-center gap-2 p-3 rounded-xl border ${activeAesthetic.styles.border} transition-all ${retroMode ? `bg-white/20 ${activeAesthetic.styles.accent}` : `hover:bg-white/10 ${activeAesthetic.styles.text}`} text-[10px] font-bold uppercase tracking-wider`}>
                                 <Monitor size={14} /> Screen FX
-                            </button>
+                            </motion.button>
                          </div>
 
                          {/* Aesthetic Selector */}
-                         <div className={`mb-6`}>
-                             <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-widest mb-3 flex items-center gap-2`}><PaintRoller size={12}/> Visual Cortex</div>
-                             <div className="grid grid-cols-2 gap-2">
+                         <div className={`mb-8 text-left`}>
+                             <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pr-2`}>
+                                <PaintRoller size={12}/> 01. Visual Aesthetics
+                                <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
+                             </div>
+                             <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                  {AESTHETICS.map(a => (
-                                     <button
+                                     <motion.button
                                          key={a.id}
                                          onClick={() => { setActiveAesthetic(a); playSound('blip'); }}
-                                         className={`p-3 rounded-xl border transition-all flex flex-col items-center gap-1 ${activeAesthetic.id === a.id ? `${a.styles.border} bg-white/20 ${a.styles.text}` : `border-transparent bg-white/5 hover:bg-white/10 ${activeAesthetic.styles.subText}`}`}
+                                         className={`group flex items-center gap-3 p-3 rounded-xl border transition-all ${activeAesthetic.id === a.id ? `${a.styles.border} bg-white/20 ${a.styles.text}` : `border-transparent bg-white/5 hover:bg-white/10 ${activeAesthetic.styles.subText}`}`}
                                      >
-                                         <SwatchBook size={16} className={activeAesthetic.id === a.id ? a.styles.accent : ''} />
-                                         <span className="text-[10px] font-bold">{a.name}</span>
-                                     </button>
+                                         <div className={`w-8 h-8 rounded-lg ${a.styles.bg} border ${a.styles.border} flex items-center justify-center shrink-0 shadow-inner`}>
+                                            <div className={`w-3 h-3 rounded-full ${a.styles.accent.replace('text-', 'bg-')}`}></div>
+                                         </div>
+                                         <div className="flex-1 text-left">
+                                            <span className="text-[11px] font-bold block">{a.name}</span>
+                                            <span className={`text-[8px] uppercase tracking-tighter opacity-70 block ${a.styles.font || 'font-sans'}`}>Font: {a.styles.font || 'default'}</span>
+                                         </div>
+                                         {activeAesthetic.id === a.id && <div className={`w-1.5 h-1.5 rounded-full ${a.styles.highlight.replace('text-', 'bg-')} shadow-[0_0_8px_rgba(255,255,255,0.5)]`}></div>}
+                                     </motion.button>
                                  ))}
                              </div>
                          </div>
 
-                         {/* Era Selector */}
-                         <div className={`mb-6`}>
-                             <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-widest mb-3 flex items-center gap-2`}><Clock size={12}/> Chronology</div>
-                             <div className="flex flex-wrap gap-2">
+                         {/* Era Selector (Time Travel) */}
+                         <div className={`mb-8 text-left`}>
+                             <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pr-2`}>
+                                <Clock size={12}/> 02. Time Travel Filter
+                                <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
+                             </div>
+                             <div className="grid grid-cols-2 gap-2">
                                  {TIME_ERAS.map(era => (
-                                     <button
+                                     <motion.button
+                                         whileHover={{ scale: 1.05 }}
+                                         whileTap={{ scale: 0.95 }}
                                          key={era.id}
                                          onClick={() => { setActiveEra(era); playSound('blip'); }}
-                                         className={`px-3 py-1.5 rounded-full text-[10px] border transition-all font-mono tracking-wider uppercase ${activeEra.id === era.id ? `${activeAesthetic.styles.border} bg-white/20 ${activeAesthetic.styles.text}` : `border-transparent bg-white/5 hover:bg-white/10 ${activeAesthetic.styles.subText}`}`}
+                                         className={`px-3 py-3 rounded-xl text-[10px] border transition-all font-mono tracking-wider uppercase text-left relative overflow-hidden group ${activeEra.id === era.id ? `${activeAesthetic.styles.border} bg-white/20 ${activeAesthetic.styles.text}` : `border-transparent bg-white/5 hover:bg-white/10 ${activeAesthetic.styles.subText}`}`}
                                      >
-                                         {era.name}
-                                     </button>
+                                         <span className="block font-bold mb-0.5">{era.name}</span>
+                                         <span className="block text-[8px] opacity-60 tracking-normal italic truncate font-sans">{era.range}</span>
+                                         {activeEra.id === era.id && <div className={`absolute top-0 right-0 py-0.5 px-1.5 text-[7px] font-black uppercase tracking-tighter bg-current text-black`}>ACTIVE</div>}
+                                     </motion.button>
                                  ))}
                              </div>
+                             <p className={`mt-3 text-[9px] ${activeAesthetic.styles.subText} italic opacity-60 font-mono text-center`}>
+                                * Influences neural search results priority.
+                             </p>
                          </div>
 
                          {/* Persona Selector */}
-                         <div className={`mb-6`}>
-                             <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-widest mb-3 flex items-center gap-2`}><Terminal size={12} /> Curator Persona</div>
-                             <div className="space-y-2">
+                         <div className={`mb-8 text-left`}>
+                             <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pr-2`}>
+                                <Terminal size={12} /> 03. Curator Personas
+                                <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
+                             </div>
+                             <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                 {CURATOR_PERSONAS.map(persona => (
-                                    <button
+                                    <motion.button
                                         key={persona.id}
                                         onClick={() => { setActivePersona(persona); playSound('blip'); }}
-                                        className={`w-full text-left p-3 rounded-xl transition-all border ${activePersona.id === persona.id ? `${activeAesthetic.styles.border} bg-white/20` : `border-transparent bg-white/5 hover:bg-white/10`}`}
+                                        className={`w-full text-left p-4 rounded-xl transition-all border group ${activePersona.id === persona.id ? `${activeAesthetic.styles.border} bg-white/20` : `border-transparent bg-white/5 hover:bg-white/10`}`}
                                     >
-                                        <div className="flex items-center justify-between mb-1">
-                                            <div className={`font-bold flex items-center gap-2 ${activePersona.id === persona.id ? activeAesthetic.styles.text : activeAesthetic.styles.subText}`}>
-                                                <div className={`w-2 h-2 rounded-full ${persona.color}`}></div>
-                                                {persona.name}
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className={`w-8 h-8 rounded-full ${persona.color} flex items-center justify-center shrink-0 shadow-lg border-2 border-white/10`}>
+                                                <User size={14} className="text-white" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className={`font-bold text-[11px] uppercase tracking-wider ${activePersona.id === persona.id ? activeAesthetic.styles.text : activeAesthetic.styles.subText}`}>
+                                                    {persona.name}
+                                                </div>
+                                                <div className={`text-[9px] mt-1 leading-relaxed ${activeAesthetic.styles.subText} opacity-80 font-mono line-clamp-1`}>
+                                                    {persona.description}
+                                                </div>
                                             </div>
                                         </div>
-                                        {activePersona.id === persona.id && (
-                                            <div className={`text-[10px] mt-2 leading-relaxed ${activeAesthetic.styles.subText} font-mono mix-blend-screen`}>
-                                                {persona.description}
-                                            </div>
-                                        )}
-                                    </button>
+                                    </motion.button>
                                 ))}
                              </div>
                          </div>
 
                          {/* Model Selector */}
-                         <div className={`mb-6`}>
-                             <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-widest mb-3 flex items-center gap-2`}><Cpu size={12} /> Neural Engine</div>
-                             <div className="space-y-2">
+                         <div className={`mb-8 text-left`}>
+                             <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pr-2`}>
+                                <Cpu size={12} /> 04. Neural Engine
+                                <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
+                             </div>
+                             <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                 {AI_MODELS.map(model => (
-                                    <button
+                                    <motion.button
                                         key={model.id}
                                         onClick={() => { setActiveModel(model); playSound('blip'); }}
                                         className={`w-full text-left p-3 rounded-xl transition-all border ${activeModel.id === model.id ? `${activeAesthetic.styles.border} bg-white/20 ${activeAesthetic.styles.highlight}` : `border-transparent bg-white/5 hover:bg-white/10 ${activeAesthetic.styles.subText}`}`}
                                     >
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="font-bold flex items-center gap-2 text-xs">
+                                        <div className="flex justify-between items-center h-6">
+                                            <span className="font-bold flex items-center gap-2 text-[11px] truncate">
                                                 {model.name}
-                                                {model.isExperimental && <span className="text-[9px] bg-purple-500/50 px-1 rounded text-white">EXP</span>}
+                                                {model.isExperimental && <span className="text-[7px] bg-purple-500/50 px-1 rounded text-white font-black">EXP</span>}
                                             </span>
+                                            {activeModel.id === model.id && (
+                                                <motion.div layoutId="engine-active" className="flex items-center gap-1">
+                                                    <div className="w-1 h-1 rounded-full bg-current animate-ping"></div>
+                                                    <span className="text-[8px] font-mono uppercase tracking-tighter opacity-70">Uplink Active</span>
+                                                </motion.div>
+                                            )}
                                         </div>
-                                    </button>
+                                    </motion.button>
                                 ))}
                              </div>
                          </div>
 
                          {/* Thinking Config */}
                          {activeModel.supportsThinking && (
-                             <div className={`mb-6`}>
-                                 <div className="flex justify-between items-center mb-2">
-                                     <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-widest`}>Thinking Budget</div>
-                                     <div className={`text-[10px] font-mono ${activeAesthetic.styles.accent}`}>{thinkingBudget}</div>
+                             <div className={`mb-8 text-left`}>
+                                 <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pr-2`}>
+                                    <Zap size={12}/> 05. Latency / logic
+                                    <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
                                  </div>
-                                 <input 
-                                    type="range" 
-                                    min="0" 
-                                    max={activeModel.maxThinkingBudget} 
-                                    step="1024"
-                                    value={thinkingBudget}
-                                    onChange={(e) => setThinkingBudget(Number(e.target.value))}
-                                    className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-current"
-                                 />
+                                 <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div className={`text-[10px] font-mono font-bold ${activeAesthetic.styles.subText}`}>Thinking Budget</div>
+                                        <div className={`text-[10px] font-mono font-black ${activeAesthetic.styles.accent}`}>{thinkingBudget} FLOPs</div>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="0" 
+                                        max={activeModel.maxThinkingBudget} 
+                                        step="1024"
+                                        value={thinkingBudget}
+                                        onChange={(e) => setThinkingBudget(Number(e.target.value))}
+                                        className="w-full h-1 bg-gray-700/50 rounded-lg appearance-none cursor-pointer accent-current"
+                                    />
+                                    <div className="flex justify-between mt-2">
+                                        <span className={`text-[8px] font-mono ${activeAesthetic.styles.subText}`}>FAST (0)</span>
+                                        <span className={`text-[8px] font-mono ${activeAesthetic.styles.subText}`}>DEEP ({activeModel.maxThinkingBudget})</span>
+                                    </div>
+                                 </div>
                              </div>
                          )}
 
                          {/* Advanced Toggles */}
-                         <div className="grid grid-cols-2 gap-2 mt-6">
-                            <button onClick={() => setSoundEnabled(!soundEnabled)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${soundEnabled ? activeAesthetic.styles.text : activeAesthetic.styles.subText}`}>
+                         <div className="grid grid-cols-3 gap-2 mt-6">
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setSoundEnabled(!soundEnabled)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${soundEnabled ? activeAesthetic.styles.text : activeAesthetic.styles.subText}`}>
                                {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-                               <span className="text-[10px] font-mono uppercase tracking-widest">{soundEnabled ? 'Sound On' : 'Sound Off'}</span>
-                            </button>
-                            <button onClick={() => setIsHelpModalOpen(true)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+                               <span className="text-[10px] font-mono uppercase tracking-widest leading-none text-center">{soundEnabled ? 'Sound On' : 'Sound Off'}</span>
+                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsNeuralLinkModalOpen(true)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+                               <Terminal size={16} />
+                               <span className="text-[10px] font-mono uppercase tracking-widest leading-none text-center">Neural Link</span>
+                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsHelpModalOpen(true)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
                                <HelpCircle size={16} />
-                               <span className="text-[10px] font-mono uppercase tracking-widest">Shortcuts</span>
-                            </button>
+                               <span className="text-[10px] font-mono uppercase tracking-widest leading-none text-center">Shortcuts</span>
+                            </motion.button>
                          </div>
-                     </div>
+                     </motion.div>
                  </>
              )}
+             </AnimatePresence>
 
-            <button onClick={() => setIsSidebarOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 hidden sm:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text} relative`} title="History & Favorites">
-              <History size={18} />
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setIsNeuralLinkModalOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 hidden sm:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`} title="Sync Neural Link">
+               <BrainCircuit size={18} />
+            </motion.button>
+
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setIsSidebarOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 hidden sm:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text} relative`} title="Vault of Burrows">
+              <Rabbit size={18} />
               {favorites.length > 0 && <span className="absolute top-0 right-0 w-2 h-2 bg-pink-500 rounded-full animate-pulse"></span>}
-            </button>
+            </motion.button>
 
-            <button onClick={handleStumble} disabled={status === 'loading'} className={`flex items-center justify-center gap-2 px-4 md:px-6 py-2 rounded-full font-bold transition-all transform active:scale-95 shadow-lg ${activeAesthetic.id === 'solar' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : activeAesthetic.id === 'vapor' ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : activeAesthetic.id === 'brutal' ? 'bg-lime-500 hover:bg-lime-400 text-black' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}>
-              {status === 'loading' ? <RefreshCw size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              <span className="hidden sm:inline text-sm">Stumble</span>
-            </button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleStumble} disabled={status === 'loading'} className={`flex items-center justify-center gap-2 px-4 md:px-6 py-2 rounded-full font-bold transition-all transform shadow-lg ${activeAesthetic.id === 'solar' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : activeAesthetic.id === 'vapor' ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : activeAesthetic.id === 'brutal' ? 'bg-lime-500 hover:bg-lime-400 text-black' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}>
+              {status === 'loading' ? <RefreshCw size={16} className="animate-spin" /> : <Rabbit size={16} />}
+              <span className="hidden sm:inline text-sm">Fall Down</span>
+            </motion.button>
          </div>
       </header>
 
@@ -859,9 +967,9 @@ const App: React.FC = () => {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        <button type="submit" className={`hidden md:block py-3 px-8 rounded-full font-bold ml-4 transition-transform hover:scale-105 active:scale-95 text-white ${activeAesthetic.id === 'solar' ? 'bg-emerald-600' : activeAesthetic.id === 'brutal' ? 'bg-lime-500 text-black' : 'bg-indigo-600'}`}>
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="submit" className={`hidden md:block py-3 px-8 rounded-full font-bold ml-4 transition-transform text-white ${activeAesthetic.id === 'solar' ? 'bg-emerald-600' : activeAesthetic.id === 'brutal' ? 'bg-lime-500 text-black' : 'bg-indigo-600'}`}>
                            Initiate
-                        </button>
+                        </motion.button>
                     </div>
                 </form>
              </motion.div>
@@ -876,13 +984,18 @@ const App: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                   <AnimatePresence>
                    {COLLECTIONS.map((cat, i) => (
                       <motion.button 
+                         layout="position"
                          key={cat.id}
                          onClick={() => handleSearch(undefined, cat.query)}
-                         initial={{ opacity: 0, y: 20 }}
-                         animate={{ opacity: 1, y: 0 }}
-                         transition={{ delay: i * 0.1 }}
+                         initial={{ opacity: 0, scale: 0.8, y: 30 }}
+                         animate={{ opacity: 1, scale: 1, y: 0 }}
+                         exit={{ opacity: 0, scale: 0.8, y: -30 }}
+                         transition={{ delay: i * 0.05, type: 'spring', bounce: 0.4 }}
+                         whileHover={{ scale: 1.05, y: -5 }}
+                         whileTap={{ scale: 0.95 }}
                          className="glass-panel rounded-3xl p-6 flex flex-col items-start gap-4 hover:bg-white/10 transition-all group overflow-hidden relative"
                       >
                          <div className={`absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-white/20 transition-all ${activeAesthetic.styles.text}`}></div>
@@ -895,6 +1008,7 @@ const App: React.FC = () => {
                          </div>
                       </motion.button>
                    ))}
+                   </AnimatePresence>
                 </div>
              </motion.div>
           </motion.div>
@@ -908,10 +1022,13 @@ const App: React.FC = () => {
              exit={{ opacity: 0, y: 30 }}
              className="w-full max-w-7xl z-10 min-h-[500px] flex items-center justify-center pt-24"
           >
+            <AnimatePresence mode="wait">
             {status === 'loading' ? (
-              <NeuralLoading />
+              <motion.div key="loading" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="w-full">
+                <NeuralLoading />
+              </motion.div>
             ) : searchResults ? (
-              <div className="w-full mx-auto px-4 mt-8 relative z-10 w-full animate-fade-in">
+               <motion.div key="search-results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full mx-auto px-4 mt-8 relative z-10">
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
                         <h2 className={`text-4xl font-display font-black tracking-tight ${activeAesthetic.styles.text} mb-2`}>Search Results</h2>
@@ -919,18 +1036,40 @@ const App: React.FC = () => {
                             Query: <span className="text-white">"{searchQuery}"</span>
                         </p>
                     </div>
-                    <button onClick={() => { setIsSearchActive(false); setSearchQuery(''); setSearchResults(null); handleStumble(); }} className={`px-4 py-2 rounded-lg border ${activeAesthetic.styles.border} hover:bg-white/5 ${activeAesthetic.styles.text} font-bold text-sm flex items-center gap-2 transition-colors`}>
+                    <motion.button 
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => { setIsSearchActive(false); setSearchQuery(''); setSearchResults(null); handleStumble(); }} 
+                        className={`px-4 py-2 rounded-lg border ${activeAesthetic.styles.border} hover:bg-white/5 ${activeAesthetic.styles.text} font-bold text-sm flex items-center gap-2 transition-colors`}
+                    >
                         <X size={16}/> Clear Results
-                    </button>
+                    </motion.button>
                  </div>
                  
-                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                 <motion.div 
+                    initial="hidden"
+                    animate="visible"
+                    variants={{
+                        hidden: { opacity: 0 },
+                        visible: {
+                            opacity: 1,
+                            transition: { staggerChildren: 0.1 }
+                        }
+                    }}
+                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                 >
+                    <AnimatePresence>
                     {searchResults.map((site, idx) => (
                         <motion.div 
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.05 }}
+                          layout
                           key={site.id} 
+                          variants={{
+                              hidden: { opacity: 0, y: 30, scale: 0.9 },
+                              visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", bounce: 0.4 } }
+                          }}
+                          initial="hidden"
+                          animate="visible"
+                          exit={{ opacity: 0, scale: 0.9, y: 20 }}
                           onClick={() => selectSearchResult(site)}
                           className={`p-6 rounded-2xl cursor-pointer transition-all transform hover:scale-[1.02] border ${activeAesthetic.styles.border} ${activeAesthetic.styles.cardBg} hover:border-current hover:bg-black/30 group relative overflow-hidden flex flex-col justify-between min-h-[220px] shadow-lg hover:shadow-2xl`}
                         >
@@ -963,81 +1102,112 @@ const App: React.FC = () => {
                            </div>
                         </motion.div>
                     ))}
-                 </div>
-              </div>
+                    </AnimatePresence>
+                 </motion.div>
+              </motion.div>
             ) : currentSite ? (
-              <div className="w-full">
+              <motion.div key="site-renderer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="w-full">
                  {isSearchActive && (
                     <div className="flex justify-center mb-4">
-                        <span className={`${activeAesthetic.styles.cardBg} ${activeAesthetic.styles.text} border ${activeAesthetic.styles.border} px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2`}>
+                        <span className={`${activeAesthetic.styles.cardBg} ${activeAesthetic.styles.text} border ${activeAesthetic.styles.border} px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 relative z-50`}>
                             <Search size={12} /> Results for: "{searchQuery}"
                             <button onClick={() => { setIsSearchActive(false); setSearchQuery(''); handleStumble(); }} className="hover:opacity-50"><X size={12}/></button>
                         </span>
                     </div>
                  )}
-                 <SiteCard 
-                    site={currentSite} 
-                    aesthetic={activeAesthetic}
-                    persona={activePersona}
-                    era={activeEra}
-                    isFavorite={favorites.some(f => f.id === currentSite.id)}
-                    onToggleFavorite={(s) => { playSound('blip'); toggleFavorite(s); }}
-                    onVisit={() => window.open(currentSite.url, '_blank')}
-                    onTagClick={handleTagClick}
-                    onFindSimilar={handleFindSimilar}
-                    onAnalyze={handleAnalyzeSite}
-                    selectedTag={selectedTag}
-                    analysisText={currentAnalysis}
-                    isAnalyzing={isAnalyzing}
-                 />
-              </div>
+                 <AnimatePresence mode="wait">
+                   <motion.div
+                     key={currentSite.id}
+                     initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                     animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                     exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
+                     transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
+                   >
+                     <SiteCard 
+                        site={currentSite} 
+                        aesthetic={activeAesthetic}
+                        persona={activePersona}
+                        era={activeEra}
+                        isFavorite={favorites.some(f => f.id === currentSite.id)}
+                        onToggleFavorite={(s) => { playSound('blip'); toggleFavorite(s); }}
+                        onVisit={() => window.open(currentSite.url, '_blank')}
+                        onTagClick={handleTagClick}
+                        onFindSimilar={handleFindSimilar}
+                        onAnalyze={handleAnalyzeSite}
+                        selectedTag={selectedTag}
+                        analysisText={currentAnalysis}
+                        isAnalyzing={isAnalyzing}
+                     />
+                   </motion.div>
+                 </AnimatePresence>
+              </motion.div>
             ) : (
-               <div className={`text-center ${activeAesthetic.styles.subText}`}>
+               <motion.div key="error-lost" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className={`text-center ${activeAesthetic.styles.subText}`}>
                  <AlertCircle size={48} className="mx-auto mb-2 opacity-50" />
                  <p className="mb-4">Signal lost. The weird web is vast, but sometimes empty.</p>
                  <div className="flex gap-4 justify-center">
-                    <button onClick={() => { setSelectedTag(null); setSelectedCategory(Category.ALL); setIsSearchActive(false); setSearchQuery(''); playSound('blip'); }} className="hover:text-white underline">Clear All Filters</button>
-                    <button onClick={handleStumble} className={`${activeAesthetic.styles.accent} hover:underline`}>Retry</button>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { setSelectedTag(null); setSelectedCategory(Category.ALL); setIsSearchActive(false); setSearchQuery(''); playSound('blip'); }} className="hover:text-white underline">Clear All Filters</motion.button>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleStumble} className={`${activeAesthetic.styles.accent} hover:underline`}>Retry</motion.button>
                  </div>
-               </div>
+               </motion.div>
             )}
+            </AnimatePresence>
           </motion.div>
           </AnimatePresence>
         )}
 
         {/* Mobile Stumble FAB */}
         {!showWelcome && (
-          <button 
+          <motion.button 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={handleStumble}
-            className={`sm:hidden fixed bottom-6 right-6 z-50 ${activeAesthetic.id === 'solar' ? 'bg-emerald-600' : activeAesthetic.id === 'vapor' ? 'bg-fuchsia-600' : activeAesthetic.id === 'brutal' ? 'bg-lime-600 text-black' : 'bg-indigo-600'} text-white p-4 rounded-full shadow-2xl active:scale-90 transition-transform`}
+            className={`sm:hidden fixed bottom-6 right-6 z-50 ${activeAesthetic.id === 'solar' ? 'bg-emerald-600' : activeAesthetic.id === 'vapor' ? 'bg-fuchsia-600' : activeAesthetic.id === 'brutal' ? 'bg-lime-600 text-black' : 'bg-indigo-600'} text-white p-4 rounded-full shadow-2xl transition-transform`}
           >
             {status === 'loading' ? <RefreshCw className="animate-spin" /> : <Sparkles />}
-          </button>
+          </motion.button>
         )}
       </main>
 
       {/* Sidebar Drawer */}
-      <div className={`fixed inset-y-0 right-0 z-50 w-80 glass-panel border-l ${activeAesthetic.styles.border} transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} shadow-2xl flex flex-col backdrop-blur-3xl bg-black/80`}>
-        <div className={`p-6 border-b ${activeAesthetic.styles.border} flex justify-between items-center`}>
-          <h2 className={`font-display font-bold text-xl uppercase tracking-widest ${activeAesthetic.styles.text}`}>Terminal Log</h2>
-          <button onClick={() => setIsSidebarOpen(false)} className={`p-2 rounded-full glass-panel hover:bg-white/10 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
-            <X size={18} />
-          </button>
-        </div>
+      <AnimatePresence>
+      {isSidebarOpen && (
+          <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              className={`fixed inset-y-0 right-0 z-50 w-80 glass-panel border-l ${activeAesthetic.styles.border} shadow-2xl flex flex-col backdrop-blur-3xl bg-black/80`}
+          >
+            <div className={`p-6 border-b ${activeAesthetic.styles.border} flex justify-between items-center`}>
+              <h2 className={`font-display font-bold text-xl uppercase tracking-widest ${activeAesthetic.styles.text}`}>Terminal Log</h2>
+              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsSidebarOpen(false)} className={`p-2 rounded-full glass-panel hover:bg-white/10 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+                <X size={18} />
+              </motion.button>
+            </div>
 
         <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
           <div className="md:hidden flex flex-col gap-3 mb-8">
-               <button 
+               <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                      setIsSidebarOpen(false);
                      setIsSubmitModalOpen(true);
                   }}
-                  className={`flex items-center gap-3 p-4 rounded-xl border ${activeAesthetic.styles.border} bg-white/5 ${activeAesthetic.styles.text} hover:bg-white/10 transition-colors font-mono text-xs uppercase tracking-widest`}
+                  className={`flex flex-col gap-1 p-4 rounded-xl border ${activeAesthetic.styles.border} bg-white/5 hover:bg-white/10 transition-colors w-full`}
                >
-                  <Plus size={16} className={activeAesthetic.styles.accent} />
-                  Submit Node
-               </button>
-               <button 
+                  <span className={`flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest ${activeAesthetic.styles.text}`}>
+                     <Plus size={14} className={activeAesthetic.styles.highlight} /> Submit Node
+                  </span>
+                  <span className={`text-[10px] ${activeAesthetic.styles.subText} text-left`}>Archive a weird site.</span>
+               </motion.button>
+               
+               <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                      setIsSidebarOpen(false);
                      setSelectedTag(null);
@@ -1046,21 +1216,27 @@ const App: React.FC = () => {
                      setIsSearchActive(false);
                      handleStumble();
                   }}
-                  className={`flex items-center gap-3 p-4 rounded-xl border ${activeAesthetic.styles.border} bg-white/5 ${activeAesthetic.styles.text} hover:bg-white/10 transition-colors font-mono text-xs uppercase tracking-widest`}
+                  className={`flex flex-col gap-1 p-4 rounded-xl border ${activeAesthetic.styles.border} bg-white/5 hover:bg-white/10 transition-colors w-full mt-2`}
                >
-                  <Dices size={16} className={activeAesthetic.styles.accent} />
-                  Feeling Lucky
-               </button>
-               <button 
+                  <span className={`flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest ${activeAesthetic.styles.text}`}>
+                     <Dices size={14} className={activeAesthetic.styles.highlight} /> Feeling Lucky
+                  </span>
+                  <span className={`text-[10px] ${activeAesthetic.styles.subText} text-left`}>Stumble into the void.</span>
+               </motion.button>
+               <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                      setIsSidebarOpen(false);
                      setIsHelpModalOpen(true);
                   }}
-                  className={`xl:hidden flex items-center gap-3 p-4 rounded-xl border ${activeAesthetic.styles.border} bg-white/5 ${activeAesthetic.styles.text} hover:bg-white/10 transition-colors font-mono text-xs uppercase tracking-widest`}
+                  className={`xl:hidden flex flex-col gap-1 p-4 rounded-xl border ${activeAesthetic.styles.border} bg-white/5 hover:bg-white/10 transition-colors w-full mt-2`}
                >
-                  <HelpCircle size={16} className={activeAesthetic.styles.accent} />
-                  Sys Help
-               </button>
+                  <span className={`flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest ${activeAesthetic.styles.text}`}>
+                     <HelpCircle size={14} className={activeAesthetic.styles.highlight} /> Sys Help
+                  </span>
+                  <span className={`text-[10px] ${activeAesthetic.styles.subText} text-left`}>Terminal manual & controls.</span>
+               </motion.button>
           </div>
 
           {favorites.length > 0 && (
@@ -1069,15 +1245,18 @@ const App: React.FC = () => {
                  <h3 className={`text-[10px] font-mono font-bold ${activeAesthetic.styles.subText} uppercase tracking-widest flex items-center gap-2`}>
                    <Heart size={10} className="text-pink-500" /> Saved Nodes
                  </h3>
-                 <button onClick={() => setFavorites([])} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear ALL Favorites">
+                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setFavorites([])} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear ALL Favorites">
                     <Trash2 size={10} /> Clear
-                 </button>
+                 </motion.button>
                </div>
                <div className="space-y-3">
+                 <AnimatePresence>
                  {favorites.map((site, i) => (
                    <motion.div 
+                      layout
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
                       transition={{ delay: i * 0.05 }}
                       key={site.id} 
                       className={`bg-white/5 rounded-xl p-4 border border-white/5 hover:${activeAesthetic.styles.border} transition-colors group cursor-pointer`} 
@@ -1085,13 +1264,14 @@ const App: React.FC = () => {
                    >
                       <div className="flex justify-between items-start">
                         <h4 className={`font-bold ${activeAesthetic.styles.text} text-sm line-clamp-1`}>{site.title}</h4>
-                        <button onClick={(e) => { e.stopPropagation(); toggleFavorite(site); }} className="text-pink-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); toggleFavorite(site); }} className="text-pink-500 opacity-0 group-hover:opacity-100 transition-opacity">
                           <X size={14} />
-                        </button>
+                        </motion.button>
                       </div>
                       <p className={`text-xs ${activeAesthetic.styles.subText} mt-2 line-clamp-2 leading-relaxed`}>{site.description}</p>
                    </motion.div>
                  ))}
+                 </AnimatePresence>
                </div>
              </div>
           )}
@@ -1102,16 +1282,19 @@ const App: React.FC = () => {
                  <History size={10} /> Session Log
                </h3>
                {history.length > 0 && (
-                 <button onClick={() => setHistory([])} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear History">
+                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setHistory([])} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear History">
                     <Trash2 size={10} /> Clear
-                 </button>
+                 </motion.button>
                )}
              </div>
              <div className="space-y-3">
+               <AnimatePresence>
                {history.map((site, idx) => (
                  <motion.div 
+                    layout
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
                     transition={{ delay: idx * 0.05 }}
                     key={`${site.id}-${idx}`} 
                     className={`group bg-white/5 rounded-xl p-4 border border-transparent hover:${activeAesthetic.styles.border} transition-colors cursor-pointer`} 
@@ -1129,29 +1312,46 @@ const App: React.FC = () => {
                     </div>
                  </motion.div>
                ))}
+               </AnimatePresence>
+               <AnimatePresence>
                {history.length === 0 && (
-                 <p className={`text-sm ${activeAesthetic.styles.subText} italic text-center py-4`}>No stumbles yet.</p>
+                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`text-sm ${activeAesthetic.styles.subText} italic text-center py-4`}>No stumbles yet.</motion.p>
                )}
+               </AnimatePresence>
              </div>
-          </div>
+           </div>
         </div>
-      </div>
-      
-      {/* Overlay for Sidebar */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={() => setIsSidebarOpen(false)}></div>
+      </motion.div>
       )}
+      </AnimatePresence>
+
+      {/* Overlay for Sidebar */}
+      <AnimatePresence>
+      {isSidebarOpen && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={() => setIsSidebarOpen(false)}></motion.div>
+      )}
+      </AnimatePresence>
 
       {/* Submit Modal */}
+      <AnimatePresence>
       {isSubmitModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <div className={`w-full max-w-md ${activeAesthetic.styles.cardBg} border ${activeAesthetic.styles.border} rounded-xl p-6 shadow-2xl relative animate-fade-in`}>
-              <button onClick={() => setIsSubmitModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        >
+           <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className={`w-full max-w-md ${activeAesthetic.styles.cardBg} border ${activeAesthetic.styles.border} rounded-xl p-6 shadow-2xl relative`}
+           >
+              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsSubmitModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
                  <X size={20} />
-              </button>
+              </motion.button>
               <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} mb-2`}>Submit a Node</h2>
               <p className={`text-sm ${activeAesthetic.styles.subText} mb-6`}>Help expand the weird web. Your submission will be stored locally.</p>
-              
               <form onSubmit={(e) => {
                  e.preventDefault();
                  const formData = new FormData(e.currentTarget);
@@ -1169,22 +1369,22 @@ const App: React.FC = () => {
                  playSound('success');
               }} className="space-y-4">
                  
-                 <div>
+                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
                     <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Title</label>
                     <input name="title" required className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} placeholder="Site Title" />
-                 </div>
+                 </motion.div>
                  
-                 <div>
+                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
                     <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>URL</label>
                     <input name="url" type="url" required className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} placeholder="https://..." />
-                 </div>
+                 </motion.div>
 
-                 <div>
+                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
                     <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Description</label>
                     <textarea name="description" required rows={3} className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} placeholder="What makes it weird?" />
-                 </div>
+                 </motion.div>
 
-                 <div className="grid grid-cols-2 gap-4">
+                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} className="grid grid-cols-2 gap-4">
                     <div>
                         <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Category</label>
                         <select name="category" required className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`}>
@@ -1197,88 +1397,267 @@ const App: React.FC = () => {
                         <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Tags (comma-separated)</label>
                         <input name="tags" placeholder="weird, web1.0, art" className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} />
                     </div>
-                 </div>
+                 </motion.div>
 
-                 <button type="submit" className={`w-full mt-4 ${activeAesthetic.styles.accent.replace('text-', 'bg-')} text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity`}>
+                 <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`w-full mt-4 ${activeAesthetic.styles.accent.replace('text-', 'bg-')} text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity`}>
                     Archive Site
-                 </button>
+                 </motion.button>
               </form>
-
+              <AnimatePresence>
               {submittedSites.length > 0 && (
-                 <div className="mt-8 pt-6 border-t border-white/10">
+                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-8 pt-6 border-t border-white/10 overflow-hidden">
                     <h3 className={`text-xs font-bold ${activeAesthetic.styles.subText} uppercase tracking-wider mb-3`}>Your Submissions</h3>
-                    <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                    <motion.div 
+                       initial="hidden"
+                       animate="visible"
+                       variants={{
+                          hidden: { opacity: 0 },
+                          visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                       }}
+                       className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar"
+                    >
+                       <AnimatePresence>
                        {submittedSites.map(s => (
-                          <div key={s.id} className="text-xs flex justify-between items-center p-2 rounded bg-white/5">
+                          <motion.div 
+                             variants={{
+                                hidden: { opacity: 0, x: -10 },
+                                visible: { opacity: 1, x: 0 }
+                             }}
+                             exit={{ opacity: 0, scale: 0.8 }}
+                             key={s.id} 
+                             className="text-xs flex justify-between items-center p-2 rounded bg-white/5"
+                          >
                              <span className={`font-medium ${activeAesthetic.styles.text} truncate max-w-[200px]`}>{s.title}</span>
                              <span className={activeAesthetic.styles.subText}>{new Date(s.submittedAt).toLocaleDateString()}</span>
-                          </div>
+                          </motion.div>
                        ))}
+                       </AnimatePresence>
+                    </motion.div>
+                 </motion.div>
+              )}
+              </AnimatePresence>
+           </motion.div>
+        </motion.div>
+      )}
+      </AnimatePresence>
+
+      {/* Neural Link Configuration Modal */}
+      <AnimatePresence>
+      {isNeuralLinkModalOpen && (
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4" 
+            onClick={() => setIsNeuralLinkModalOpen(false)}
+        >
+           <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              className={`w-full max-w-md ${activeAesthetic.styles.cardBg} border-2 ${activeAesthetic.styles.border} rounded-2xl p-8 shadow-[0_0_50px_rgba(99,102,241,0.2)] relative`} 
+              onClick={e => e.stopPropagation()}
+           >
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2">
+                <div className={`p-4 rounded-full bg-black border-2 ${activeAesthetic.styles.border} shadow-lg shadow-indigo-500/20 animate-pulse`}>
+                    <BrainCircuit size={32} className={activeAesthetic.id === 'solar' ? 'text-yellow-400' : 'text-indigo-400'} />
+                </div>
+              </div>
+
+              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsNeuralLinkModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+                 <X size={20} />
+              </motion.button>
+
+              <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} mt-4 mb-2 text-center`}>
+                Neural Link Interface
+              </h2>
+              <p className={`text-xs ${activeAesthetic.styles.subText} text-center mb-6 leading-relaxed`}>
+                Establish a direct uplink to the Gemini Neural Network. Your API key is stored locally and used for real-time site discovery.
+              </p>
+
+              <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const key = formData.get('apiKey') as string;
+                  window.localStorage.setItem('RABBIT_HOLE_API_KEY', key);
+                  setIsNeuralLinkModalOpen(false);
+                  playSound('success');
+                  // Quick refresh of the app state might be needed or just let the next AI call use the new key
+                  setGlobalError(null);
+              }} className="space-y-6">
+                 <div>
+                    <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${activeAesthetic.styles.subText} mb-2`}>
+                        Gemini API Key
+                    </label>
+                    <div className="relative">
+                        <input 
+                            name="apiKey" 
+                            type="password"
+                            defaultValue={window.localStorage.getItem('RABBIT_HOLE_API_KEY') || ""}
+                            placeholder="Enter your API key..."
+                            className={`w-full bg-black/40 border-2 ${activeAesthetic.styles.border} rounded-xl p-3 pr-10 text-sm ${activeAesthetic.styles.text} font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all`}
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50">
+                            <Zap size={16} className={activeAesthetic.styles.accent} />
+                        </div>
                     </div>
                  </div>
-              )}
-           </div>
-        </div>
+
+                 <div className={`p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-3`}>
+                    <AlertCircle size={18} className="text-indigo-400 shrink-0 mt-0.5" />
+                    <div className="text-[10px] leading-relaxed text-indigo-200/60 uppercase font-mono">
+                        Note: For AI Studio integration, ensure your key is valid and has "Builder" permissions if applicable. No placeholders allowed.
+                    </div>
+                 </div>
+
+                 <motion.button 
+                    type="submit"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-indigo-500/20 transition-all ${activeAesthetic.id === 'solar' ? 'bg-yellow-500 text-black' : 'bg-indigo-600 text-white'}`}
+                 >
+                    Sync Neural Link
+                 </motion.button>
+
+                 <div className="text-center pt-2">
+                    <button 
+                        type="button"
+                        onClick={() => {
+                            window.localStorage.removeItem('RABBIT_HOLE_API_KEY');
+                            (document.querySelector('input[name="apiKey"]') as HTMLInputElement).value = "";
+                            playSound('static');
+                        }}
+                        className={`text-[9px] uppercase tracking-widest font-bold ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors`}
+                    >
+                        Reset to Environment Defaults
+                    </button>
+                 </div>
+              </form>
+           </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Help Modal */}
+      <AnimatePresence>
       {isHelpModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsHelpModalOpen(false)}>
-           <div className={`w-full max-w-sm ${activeAesthetic.styles.cardBg} border ${activeAesthetic.styles.border} rounded-xl p-6 shadow-2xl relative animate-fade-in`} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setIsHelpModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" 
+            onClick={() => setIsHelpModalOpen(false)}
+        >
+           <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              className={`w-full max-w-sm ${activeAesthetic.styles.cardBg} border ${activeAesthetic.styles.border} rounded-xl p-6 shadow-2xl relative`} 
+              onClick={e => e.stopPropagation()}
+           >
+              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsHelpModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
                  <X size={20} />
-              </button>
+              </motion.button>
               <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} mb-4 flex items-center gap-2`}>
                 <Ghost size={24} className={activeAesthetic.styles.accent} />
                 Terminal Manual
               </h2>
               
-              <div className="space-y-4">
-                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+              <motion.div 
+                 initial="hidden"
+                 animate="visible"
+                 variants={{
+                     hidden: { opacity: 0 },
+                     visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+                 }}
+                 className="space-y-4"
+              >
+                 <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
                     <span>Stumble Forward</span>
                     <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>Space</kbd>
-                 </div>
-                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                 </motion.div>
+                 <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
                     <span>Stumble Forward</span>
                     <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>→</kbd>
-                 </div>
-                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                 </motion.div>
+                 <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
                     <span>Go Back</span>
                     <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>←</kbd>
-                 </div>
-                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                 </motion.div>
+                 <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
                     <span>Focus Search</span>
                     <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>/</kbd>
-                 </div>
-                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                 </motion.div>
+                 <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
                     <span>Toggle Sound</span>
                     <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>M</kbd>
-                 </div>
-                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                 </motion.div>
+                 <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
                     <span>Favorite Site</span>
                     <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>F</kbd>
-                 </div>
-                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                 </motion.div>
+                 <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
                     <span>Toggle Help Info</span>
                     <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>?</kbd>
-                 </div>
-              </div>
-           </div>
-        </div>
+                 </motion.div>
+              </motion.div>
+           </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {/* Global Error Banner */}
+      <AnimatePresence>
       {globalError && (
-          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-              <div className="bg-red-900/90 text-white px-6 py-3 rounded-xl shadow-2xl border border-red-500 flex items-center gap-3 backdrop-blur-sm max-w-sm sm:max-w-md w-full">
-                  <AlertCircle size={20} className="text-red-400 shrink-0" />
-                  <p className="text-sm font-medium leading-tight">{globalError}</p>
-                  <button onClick={() => setGlobalError(null)} className="ml-auto p-1 hover:bg-white/10 rounded">
-                      <X size={16} />
-                  </button>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 0.8 }} 
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100]"
+          >
+              <div className="bg-black/90 text-white px-6 py-4 rounded-2xl shadow-[0_0_30px_rgba(255,0,0,0.3)] border border-red-500/50 flex flex-col gap-2 backdrop-blur-xl max-w-sm sm:max-w-md w-full relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse"></div>
+                  <div className="flex items-center gap-3">
+                      <Rabbit size={24} className="text-red-500 shrink-0" />
+                      <div className="flex-1">
+                        <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-red-400 mb-1">Hole Collapse Detected</h4>
+                        <p className="text-sm font-mono leading-tight text-red-100">{globalError}</p>
+                      </div>
+                      <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setGlobalError(null)} className="p-1 hover:bg-white/10 rounded self-start">
+                          <X size={16} />
+                      </motion.button>
+                  </div>
+              </div>
+          </motion.div>
+      )}
+      </AnimatePresence>
+
+      {/* System Status Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 z-50 p-4 pointer-events-none flex flex-col sm:flex-row items-end sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+              <div className="glass-pill px-3 py-1.5 flex items-center gap-2 pointer-events-auto shadow-lg">
+                  <div className={`w-1.5 h-1.5 rounded-full ${status === 'loading' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                  <span className={`text-[9px] font-mono font-black tracking-[0.2em] ${activeAesthetic.styles.text}`}>SYS: {status === 'loading' ? 'BUSY' : 'IDLE'}</span>
+              </div>
+              <div className="glass-pill px-3 py-1.5 flex items-center gap-2 pointer-events-auto shadow-lg hidden md:flex">
+                  <Type size={10} className={activeAesthetic.styles.accent} />
+                  <span className={`text-[9px] font-mono font-black tracking-[0.2em] ${activeAesthetic.styles.text}`}>{activeAesthetic.styles.font?.replace('font-', '').toUpperCase() || 'SANS'}</span>
               </div>
           </div>
-      )}
+
+          <div className="flex items-center gap-2">
+              <div className="glass-pill px-3 py-1.5 flex items-center gap-3 pointer-events-auto shadow-lg backdrop-blur-3xl">
+                  <div className="flex items-center gap-1.5">
+                      <Cpu size={10} className={activeAesthetic.styles.subText} />
+                      <span className={`text-[9px] font-mono uppercase tracking-tighter ${activeAesthetic.styles.text} truncate max-w-[80px]`}>{activeModel.name}</span>
+                  </div>
+                  <div className="h-3 w-[1px] bg-white/10"></div>
+                  <div className="flex items-center gap-1.5">
+                      <User size={10} className={activeAesthetic.styles.subText} />
+                      <span className={`text-[9px] font-mono uppercase tracking-tighter ${activeAesthetic.styles.text}`}>{activePersona.name.split(' ')[0]}</span>
+                  </div>
+              </div>
+          </div>
+      </footer>
 
     </div>
   );

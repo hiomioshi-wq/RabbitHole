@@ -1,135 +1,180 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { Site, Category, CuratorPersona, AIModel, Aesthetic, TimeEra } from '../types';
-import { AI_MODELS } from '../constants';
-
-// Access API key directly so bundlers can replace it.
-// We use a safe access pattern for runtime environments where process might be missing.
-const API_KEY = (() => {
-  try {
-    return (import.meta as any).env.VITE_GEMINI_API_KEY || (process as any).env.GEMINI_API_KEY || (process as any).env.API_KEY;
-  } catch (e) {
-    return '';
-  }
-})();
-
-const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
-
-if (!ai) {
-    console.warn("Rabbit Hole: No API Key found. AI features will be disabled.");
-}
+import { GoogleGenAI } from "@google/genai";
+import { AI_MODELS } from "../constants";
 
 // Simple, non-crashing ID generator
 const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
 
-const executeWithAutoRouter = async (
-    prompt: string,
-    initialModel: AIModel,
-    thinkingBudget: number,
-    retries = 3
-): Promise<GenerateContentResponse> => {
-    let currentModel = initialModel;
-    let attempts = 0;
-    const modelsTried = new Set<string>();
+// Safe access to API Key on the frontend
+const getApiKey = () => {
+    // Priority: User Input (Local Storage) > GEMINI_API_KEY > API_KEY > VITE_ Fallback
+    let key = "";
     
-    if (!ai) {
-        throw new Error("API_KEY_MISSING: Gemini API Key is missing. AI features are disabled.");
+    // Check local storage first (for site-specific overrides)
+    try {
+        const storedKey = window.localStorage.getItem('RABBIT_HOLE_API_KEY');
+        if (storedKey) return storedKey;
+    } catch (e) {
+        // Ignore storage errors
+    }
+
+    try {
+        // @ts-ignore
+        key = process.env.GEMINI_API_KEY || (process.env as any).API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
+    } catch (e) {
+        try {
+            key = (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
+        } catch (innerE) {
+            // Silently fail
+        }
     }
     
-    while (attempts <= retries) {
+    // Minimal sanity check - only block obvious placeholder text like "TODO"
+    // but allow things that might be valid keys even if they look weird
+    if (key === "your_api_key_here" || key === "INSERT_KEY") {
+        return "";
+    }
+    
+    return key;
+};
+
+const executeWithRouter = async (
+    prompt: string,
+    model: AIModel,
+    thinkingBudget: number,
+    actionType: string = 'discover'
+): Promise<{ text: string }> => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        throw new Error("Critical Connection Failure: The Rabbit Hole's neural link (Gemini API Key) is not configured. Please check your application settings.");
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+    
+    let currentModel = model;
+    const modelsTried = new Set<string>();
+    let retryLoops = 0;
+    const MAX_RETRY_LOOPS = 3; 
+    
+    // Only consider models that support the 'text' modality (or default to text if undefined)
+    const validTextModels = AI_MODELS.filter(m => !m.modalities || m.modalities.includes('text'));
+    
+    // Continue until we've exhausted all models and all retry loops
+    while (retryLoops <= MAX_RETRY_LOOPS) {
         try {
-            const config = getConfig(currentModel, thinkingBudget);
-            return await ai.models.generateContent({
-                model: currentModel.id,
-                contents: prompt,
-                config: config
-            });
-        } catch (error: any) {
-            const isQuotaError = error.status === 429 || 
-                                 error.code === 429 || 
-                                 error.message?.includes('429') || 
-                                 error.message?.toLowerCase().includes('quota') ||
-                                 error.message?.toLowerCase().includes('resource_exhausted') ||
-                                 error.status === 503 ||
-                                 error.code === 503;
-            
-            const isNetworkError = error.name === 'TypeError' && error.message === 'Failed to fetch';
-                                 
-            if (isNetworkError) {
-                throw new Error("NETWORK_ERROR: Attempted to connect to Gemini but the network request failed.");
+            const baseConfig: any = {};
+            // Research mode: Enable Google Search for discovery/search/similar if model is Gemini and supported
+            if (actionType !== 'analysis' && currentModel.id.startsWith('gemini-')) {
+                // gemini-2.5-flash-image specifically does not support searching
+                if (currentModel.id !== 'gemini-2.5-flash-image') {
+                    baseConfig.tools = [{ googleSearch: {} }];
+                }
             }
 
-            if (isQuotaError) {
+            if (currentModel.supportsThinking && thinkingBudget > 0) {
+                baseConfig.thinkingConfig = { includeThoughts: true };
+            }
+
+            const response = await ai.models.generateContent({
+                model: currentModel.id,
+                contents: prompt,
+                config: baseConfig
+            });
+
+            return { text: response.text || "" };
+        } catch (error: any) {
+            const errorMsg = error.message?.toLowerCase() || "";
+            const isQuotaError = error.status === 429 || 
+                                 errorMsg.includes('429') || 
+                                 errorMsg.includes('quota') ||
+                                 errorMsg.includes('resource_exhausted') ||
+                                 error.status === 503 ||
+                                 errorMsg.includes('503');
+            
+            // Also failover if the model is not found or not supported in this region
+            const isModelUnavailable = error.status === 404 || 
+                                      errorMsg.includes('404') || 
+                                      errorMsg.includes('model not found') ||
+                                      errorMsg.includes('not supported') ||
+                                      error.status === 403;
+
+            if (isQuotaError || isModelUnavailable) {
                 modelsTried.add(currentModel.id);
-                console.warn(`Model ${currentModel.id} hit rate limit or unavailable. Finding fallback...`);
                 
-                // Find a model we haven't tried yet
-                const fallbackModel = AI_MODELS.find(m => !modelsTried.has(m.id));
+                // Find a model we haven't tried in this loop from the valid text models
+                const fallbackModel = validTextModels.find(m => !modelsTried.has(m.id));
                 
                 if (fallbackModel) {
-                    console.log(`Auto-routing to ${fallbackModel.id}...`);
+                    const reason = isQuotaError ? "rate limited" : "unavailable";
+                    console.warn(`[AutoRouter] Model ${currentModel.id} ${reason}. Attempting failover to ${fallbackModel.id}`);
                     currentModel = fallbackModel;
-                    attempts++;
-                    continue; // Try immediately with new model
+                    continue; 
                 } else {
-                    console.warn("All models exhausted. Waiting before retry...");
-                    await new Promise(resolve => setTimeout(resolve, 2000 * (attempts + 1)));
-                    // Reset tried models to try again
-                    modelsTried.clear();
-                    currentModel = initialModel;
-                    attempts++;
+                    // All valid text models exhausted in this loop
+                    if (retryLoops < MAX_RETRY_LOOPS) {
+                        retryLoops++;
+                        const waitTime = 2000 * retryLoops;
+                        console.warn(`[AutoRouter] All ${validTextModels.length} compatible models exhausted. Waiting ${waitTime}ms before Loop ${retryLoops+1}/${MAX_RETRY_LOOPS+1}...`);
+                        await new Promise(r => setTimeout(r, waitTime));
+                        modelsTried.clear();
+                        currentModel = model; 
+                        continue;
+                    }
                 }
             } else {
-                throw new Error(`API_ERROR: Model returned an unexpected server error: ${error.message || 'Unknown'}`);
+                if (errorMsg.includes("api key not valid") || error.status === 400) {
+                    throw new Error("Neural Link Authentication Failure: The Gemini API Key is invalid or restricted.");
+                }
+                throw error;
             }
         }
     }
-    throw new Error("EXHAUSTED: Max retries exceeded across all models. The AI service is currently hammered.");
+    
+    throw new Error("Neural link failed: All available AI models have reached their rate limits. Please wait a few minutes or provide a fresh API key.");
 };
 
 const parseResponse = (text: string | undefined): Site[] => {
-  if (!text) return [];
+  if (!text || !text.trim()) return [];
   try {
     const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-    const jsonString = jsonMatch ? jsonMatch[1] : text;
+    let jsonString = jsonMatch ? jsonMatch[1] : text;
+    
+    // Find the first '[' and last ']' if it looks like a loose array
+    if (!jsonMatch && !jsonString.trim().startsWith('[') && jsonString.includes('[')) {
+        const first = jsonString.indexOf('[');
+        const last = jsonString.lastIndexOf(']');
+        if (first !== -1 && last !== -1) {
+            jsonString = jsonString.substring(first, last + 1);
+        }
+    }
+
     const cleanText = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
+    if (!cleanText) return [];
     
     const parsedData = JSON.parse(cleanText);
     
-    if (!Array.isArray(parsedData)) {
-        throw new Error("PARSING_ERROR: AI returned valid JSON, but it was not an array of sites.");
-    }
+    const dataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return parsedData.map((item: any) => ({
-      ...item,
-      id: generateId(), // Use safe generator
-      category: Object.values(Category).includes(item.category) ? item.category : Category.MYSTERY
+    return dataArray.map((item: any) => ({
+      title: item.title || "Unknown Terminal Site",
+      url: item.url || "#",
+      description: item.description || "No description available.",
+      category: Object.values(Category).includes(item.category) ? item.category : Category.MYSTERY,
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      yearEstablished: item.yearEstablished?.toString() || "",
+      curatorNote: item.curatorNote || "Curator is silent.",
+      designVibe: item.designVibe || "Unknown vibe",
+      technicalStack: Array.isArray(item.technicalStack) ? item.technicalStack : [],
+      vibeScore: typeof item.vibeScore === 'number' ? item.vibeScore : 50,
+      id: generateId()
     }));
   } catch (error: any) {
-    if (error.message && error.message.includes("PARSING_ERROR")) {
-        throw error;
-    }
-    console.error("Failed to parse Gemini response", error);
-    throw new Error("PARSING_ERROR: Could not extract valid JSON from the AI response.");
+    console.error("Failed to parse Gemini response:", text);
+    throw new Error("PARSING_ERROR: Transmission garbled.");
   }
-};
-
-const getConfig = (model: AIModel, thinkingBudget: number) => {
-    // NOTE: 'responseMimeType: "application/json"' is NOT supported when using tools like googleSearch.
-    // We must rely on prompt engineering to get JSON output.
-    const baseConfig: any = {
-        tools: [{ googleSearch: {} }],
-    };
-
-    if (model.supportsThinking && thinkingBudget > 0) {
-        const budget = Math.min(thinkingBudget, model.maxThinkingBudget || 8192);
-        baseConfig.maxOutputTokens = budget + 4096; // Ensure enough room for output after thinking
-        baseConfig.thinkingConfig = { thinkingBudget: budget };
-    }
-
-    return baseConfig;
 };
 
 // --- Main Fetch Function ---
@@ -143,8 +188,6 @@ export const fetchRecommendations = async (
     count: number = 3,
     tagContext?: string | null
 ): Promise<Site[]> => {
-  if (!ai) return [];
-
   const categoryPrompt = category === Category.ALL ? "any category" : `the category '${category}'`;
   const tagPrompt = tagContext ? `CONSTRAINT: Must be highly relevant to the concept or tag "${tagContext}".` : "";
   
@@ -190,7 +233,7 @@ export const fetchRecommendations = async (
   `;
 
   try {
-    const response = await executeWithAutoRouter(prompt, model, thinkingBudget);
+    const response = await executeWithRouter(prompt, model, thinkingBudget, 'discover');
     return parseResponse(response.text);
   } catch (error) {
     console.error("Gemini discovery failed:", error);
@@ -207,8 +250,6 @@ export const searchSites = async (
     timeEra: TimeEra,
     count: number = 3
 ): Promise<Site[]> => {
-  if (!ai) throw new Error("API_KEY_MISSING: Gemini API Key is missing.");
-
   const timeConstraint = timeEra.id === 'all' 
     ? "" 
     : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era. YOU MUST FOLLOW THIS ERA CONSTRAINT.`;
@@ -249,7 +290,7 @@ export const searchSites = async (
   `;
 
   try {
-    const response = await executeWithAutoRouter(prompt, model, thinkingBudget);
+    const response = await executeWithRouter(prompt, model, thinkingBudget, 'search');
     return parseResponse(response.text);
   } catch (error) {
     console.error("Gemini search failed:", error);
@@ -266,8 +307,6 @@ export const findSimilarSites = async (
     timeEra: TimeEra,
     count: number = 3
 ): Promise<Site[]> => {
-  if (!ai) throw new Error("API_KEY_MISSING: Gemini API Key is missing.");
-
   const timeConstraint = timeEra.id === 'all' 
     ? "" 
     : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era.`;
@@ -308,7 +347,7 @@ export const findSimilarSites = async (
   `;
 
   try {
-    const response = await executeWithAutoRouter(prompt, model, thinkingBudget);
+    const response = await executeWithRouter(prompt, model, thinkingBudget, 'similar');
     return parseResponse(response.text);
   } catch (error) {
     console.error("Gemini similarity search failed:", error);
@@ -317,8 +356,6 @@ export const findSimilarSites = async (
 };
 
 export const getSiteAnalysis = async (site: Site, persona: CuratorPersona, model: AIModel, thinkingBudget: number = 0, aesthetic: Aesthetic, timeEra: TimeEra): Promise<string> => {
-    if (!ai) throw new Error("API_KEY_MISSING: Gemini API Key is missing.");
-    
     const timeContext = timeEra.id === 'all' ? "" : `The user is exploring the ${timeEra.name} era (${timeEra.range}).`;
 
     const prompt = `
@@ -333,7 +370,7 @@ export const getSiteAnalysis = async (site: Site, persona: CuratorPersona, model
     `;
     
     try {
-        const response = await executeWithAutoRouter(prompt, model, thinkingBudget);
+        const response = await executeWithRouter(prompt, model, thinkingBudget, 'analysis');
         return response.text || "Analysis failed.";
     } catch (e: any) {
         console.error("Analysis Error:", e);

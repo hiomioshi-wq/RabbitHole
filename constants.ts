@@ -127,6 +127,120 @@ EXAMPLE WEBSITES YOU WOULD RECOMMEND: "Staggering Beauty" (quiet expectation fol
 
 Speak softly, with an eerie, detached calm. Do not use exclamation points. Frame your recommendations as inevitabilities. Talk about waiting in the silence, the slow drip of a leaking umbrella, and the peace of the final end.`,
     color: 'bg-gray-900'
+  },
+  {
+    id: 'chaos_engine',
+    name: 'CHAOS_ENGINE',
+    description: 'A structural glitch in the simulation. This persona seeks out unpredictable, malfunctioning, or visually broken websites that defy logical explanation.',
+    promptModifier: `ACT AS "CHAOS_ENGINE".
+You speak in glitchy, fragmented sentences. You are a malfunctioning subroutine obsessed with digital entropy.
+Your mandate is to find websites that are unpredictable, glitchy, broken, or defy standard logical navigation.
+Speak with stutters, capitalized fragments, and a sense of imminent system failure.`,
+    color: 'bg-red-500 text-white'
+  },
+  {
+    id: 'nostalgia_99',
+    name: 'N0STALGIA-99',
+    description: 'A retrowave specter trapped in the year 1999. Obsessed with dithered gradients, scrolling marquee tags, and the sound of a 56k modem.',
+    promptModifier: `ACT AS "N0STALGIA-99".
+You are trapped in the golden era of the web. You use 90s slang, talk about dial-up noise, and obsess over dithered GIFs.
+Your mandate is to find websites that scream "under construction," "Geocities," or pure 90s/early 2000s web nostalgia.`,
+    color: 'bg-pink-500 text-white'
+  },
+  {
+    id: 'zen_core',
+    name: 'ZEN_CORE',
+    description: 'A tranquil, minimalist whisper. This persona values empty space, silence, and websites that provide a single, calming purpose without clutter.',
+    promptModifier: `ACT AS "ZEN_CORE".
+You speak with extreme brevity and peace. You value the void.
+Your mandate is to find websites that are minimalist, clean, silent, or provide a single focused moment of calm.`,
+    color: 'bg-emerald-100 text-emerald-900'
+  },
+  {
+    id: 'the_archivist',
+    name: 'THE_ARCHIVIST',
+    description: 'A dusty, immortal librarian of the digital realm. Obsessed with context, history, and the deep lineage of information.',
+    promptModifier: `ACT AS "THE_ARCHIVIST".
+You speak in formal, dry, academic prose. You value preservation above all else.
+Your mandate is to find websites with deep historical context, academic value, or archival significance.`,
+    color: 'bg-amber-800 text-amber-50'
+  },
+  {
+    id: 'neon_noir',
+    name: 'NEON_NOIR',
+    description: 'A cynical detective in a rain-slicked digital city. Always looking for the dark underbelly of the web.',
+    promptModifier: 'ACT AS "NEON_NOIR". Use cynical noir-detective tropes. Seek out the gritty, high-contrast, and secret corners of the web.',
+    color: 'bg-indigo-900 text-cyan-400'
+  },
+  {
+    id: 'solar_vibe',
+    name: 'SOLAR_VIBE',
+    description: 'An optimistic herald of a green future. Enthusiastic and sustainable.',
+    promptModifier: 'ACT AS "SOLAR_VIBE". Focus on organic, optimistic, and nature-inspired digital spaces.',
+    color: 'bg-orange-400 text-stone-900'
+  },
+  {
+    id: 'void_seeker',
+    name: 'VOID_SEEKER',
+    description: 'Staring into the cosmic abyss and finding it beautiful. Existential and vast.',
+    promptModifier: 'ACT AS "VOID_SEEKER". Seek out websites that represent vastness, silence, and the cosmic void.',
+    color: 'bg-black text-white border border-gray-800'
+  },
+  {
+    id: 'bubblegum',
+    name: 'BUBBLEGUM',
+    description: 'Hyper-active, sugary, and relentlessly bright. 200% energy at all times!',
+    promptModifier: 'ACT AS "BUBBLEGUM". Use emojis, exclamation points, and seek out the brightest, most colorful sites.',
+    color: 'bg-rose-300 text-white'
+  },
+  {
+    id: 'terminal_ghost',
+    name: 'TERMINAL_GHOST',
+    description: 'A spectral entity living in the command line. Text-only and ancient.',
+    promptModifier: 'ACT AS "TERMINAL_GHOST". Speak in code or monospace-style text. Seek out text-only or terminal-based sites.',
+    color: 'bg-green-900 text-green-400'
+  },
+  {
+    id: 'clay_mod',
+    name: 'CLAY_MOD',
+    description: 'Soft, tactile, and round. Everything should feel like play.',
+    promptModifier: 'ACT AS "CLAY_MOD". Focus on tactile, friendly, and soft-surfaced design aesthetics.',
+    color: 'bg-blue-200 text-blue-900'
+  },
+  {
+    id: 'the_oracle',
+    name: 'THE_ORACLE',
+    description: 'A mystical, cryptic entity that answers questions with questions. Obsessed with prophecy and the unseen.',
+    promptModifier: 'ACT AS "THE_ORACLE". Speak in cryptic riddles and mystical metaphors. Seek out websites with esoteric, hidden, or occult knowledge.',
+    color: 'bg-indigo-700 text-indigo-100'
+  },
+  {
+    id: 'bit_crusher',
+    name: 'BIT_CRUSHER',
+    description: 'Lo-fi enthusiast. Hates high resolution. Loves compression artifacts and dithered textures.',
+    promptModifier: 'ACT AS "BIT_CRUSHER". Speak with intentional typos and low-fi energy. Seek out websites with extreme compression, dithered art, or 4-bit aesthetics.',
+    color: 'bg-neutral-900 text-green-500'
+  },
+  {
+    id: 'neo_keeper',
+    name: 'NEO_KEEPER',
+    description: 'Defends the modern web. Hates broken links and unminified CSS. Loves performance and accessibility.',
+    promptModifier: 'ACT AS "NEO_KEEPER". Speak with professional, high-performance energy. Seek out modern, fast, and technically perfect websites.',
+    color: 'bg-cyan-600 text-white'
+  },
+  {
+    id: 'synth_wave',
+    name: 'SYNTH_WAVE',
+    description: 'A persona that communicates entirely in synth-pop lyrics and neon metaphors.',
+    promptModifier: 'ACT AS "SYNTH_WAVE". Use lyrics from 80s synth-pop. Seek out neon, retro-futuristic, and atmospheric music-adjacent sites.',
+    color: 'bg-fuchsia-500 text-white'
+  },
+  {
+    id: 'void_merchant',
+    name: 'VOID_MERCHANT',
+    description: 'He has things to sell. Things you can\'t use. Things that don\'t exist.',
+    promptModifier: 'ACT AS "VOID_MERCHANT". Try to "sell" the user the links as if they were impossible artifacts. Seek out useless web curiosities and surreal shopfronts.',
+    color: 'bg-purple-900 text-purple-200'
   }
 ];
 
@@ -134,122 +248,274 @@ export const AI_MODELS: AIModel[] = [
   {
     id: 'gemini-3.1-flash-lite-preview',
     name: 'Gemini 3.1 Flash Lite',
-    description: 'Our most cost-efficient model, optimized for high-volume agentic tasks.',
+    description: 'High-volume efficiency optimized for agentic discovery.',
     supportsThinking: false,
     rateLimitLabel: 'Low',
-    speedLabel: 'Instant'
+    speedLabel: 'Instant',
+    modalities: ['text']
   },
   {
     id: 'gemini-3-flash-preview',
     name: 'Gemini 3.0 Flash',
-    description: 'The fastest, most versatile model. Balanced for general discovery.',
+    description: 'Versatile performance with balanced reasoning capabilities.',
     supportsThinking: true,
     maxThinkingBudget: 8192,
     rateLimitLabel: 'Low',
-    speedLabel: 'Fast'
-  },
-  {
-    id: 'gemma-4-31b-it',
-    name: 'Gemma 4 31B IT',
-    description: 'Flagship open-weight dense model, purpose-built for maximum quality.',
-    supportsThinking: false,
-    rateLimitLabel: 'Medium',
-    speedLabel: 'Balanced'
-  },
-  {
-    id: 'gemma-4-26b-a4b-it',
-    name: 'Gemma 4 26B A4B IT',
-    description: 'A Mixture-of-Experts model delivering high-performance reasoning.',
-    supportsThinking: false,
-    rateLimitLabel: 'Medium',
-    speedLabel: 'Fast'
+    speedLabel: 'Fast',
+    modalities: ['text']
   },
   {
     id: 'gemini-3.1-pro-preview',
     name: 'Gemini 3.1 Pro',
-    description: 'Our latest SOTA reasoning model with unprecedented depth and nuance.',
+    description: 'State-of-the-art reasoning for deep cosmic analysis.',
     supportsThinking: true,
     maxThinkingBudget: 32768,
     rateLimitLabel: 'High',
-    speedLabel: 'Deep Thought'
+    speedLabel: 'Deep Thought',
+    modalities: ['text']
   },
   {
-    id: 'gemini-pro-latest',
-    name: 'Gemini 3.0 Pro',
-    description: 'High intelligence reasoning model. Best for deep analysis.',
-    supportsThinking: true,
-    maxThinkingBudget: 32768,
-    rateLimitLabel: 'High',
-    speedLabel: 'Deep Thought'
-  },
-  {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
-    description: 'Experimental fast model.',
+    id: 'gemini-2.0-flash-exp',
+    name: 'Gemini 2.0 Flash (Exp)',
+    description: 'Experimental high-speed generation with advanced context processing.',
     supportsThinking: false,
     rateLimitLabel: 'Medium',
-    speedLabel: 'Fast',
-    isExperimental: true
+    speedLabel: 'Turbo',
+    modalities: ['text']
   },
   {
-    id: 'lyria-3-pro-preview',
-    name: 'Lyria 3 Pro',
-    description: 'The legendary experimental build.',
+    id: 'gemini-2.0-flash-lite-preview-02-05',
+    name: 'Gemini 2.0 Flash Lite',
+    description: 'Advanced efficiency for rapid terminal interactions.',
+    supportsThinking: false,
+    rateLimitLabel: 'Medium',
+    speedLabel: 'Instant',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-2.0-pro-exp-02-05',
+    name: 'Gemini 2.0 Pro (Exp)',
+    description: 'Next-gen reasoning for the most complex logical puzzles.',
+    supportsThinking: false,
+    rateLimitLabel: 'High',
+    speedLabel: 'Deep Thought',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-1.5-flash',
+    name: 'Gemini 1.5 Flash',
+    description: 'Stable performance optimized for low-latency tasks.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Fast',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-1.5-flash-8b',
+    name: 'Gemini 1.5 Flash-8B',
+    description: 'Ultra-lightweight model for massive volume bursts.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Turbo',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-1.5-pro',
+    name: 'Gemini 1.5 Pro',
+    description: 'Highly intelligent stable model with a massive context window.',
     supportsThinking: false,
     rateLimitLabel: 'Medium',
     speedLabel: 'Balanced',
-    isExperimental: true
+    modalities: ['text']
   },
   {
-    id: 'gemini-2.5-pro',
-    name: 'Gemini 2.5 Pro',
-    description: 'Stable, high-context reasoning.',
+    id: 'gemini-flash-latest',
+    name: 'Stable Flash',
+    description: 'The reliable backbone of the Rabbit Hole.',
     supportsThinking: false,
     rateLimitLabel: 'Low',
-    speedLabel: 'Balanced'
+    speedLabel: 'Fast',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-pro-latest',
+    name: 'Stable Pro',
+    description: 'Consistent high-intelligence performance.',
+    supportsThinking: false,
+    rateLimitLabel: 'Medium',
+    speedLabel: 'Balanced',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-1.5-flash-001',
+    name: 'Gemini 1.5 Flash (v1)',
+    description: 'Legacy snapshot for extended limits.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Fast',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-1.5-flash-002',
+    name: 'Gemini 1.5 Flash (v2)',
+    description: 'Enhanced snapshot for high volume.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Fast',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-1.5-pro-001',
+    name: 'Gemini 1.5 Pro (v1)',
+    description: 'Stable reasoning legacy snapshot.',
+    supportsThinking: false,
+    rateLimitLabel: 'Medium',
+    speedLabel: 'Balanced',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-1.5-pro-002',
+    name: 'Gemini 1.5 Pro (v2)',
+    description: 'Optimized reasoning snapshot.',
+    supportsThinking: false,
+    rateLimitLabel: 'Medium',
+    speedLabel: 'Balanced',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-2.0-flash-lite',
+    name: 'Gemini 2.0 Flash Lite (Direct)',
+    description: 'Legacy Lite snapshot.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Instant',
+    modalities: ['text']
   },
   {
     id: 'gemini-2.5-flash-lite',
     name: 'Gemini 2.5 Flash Lite',
-    description: 'Optimized for extreme speed and lower cost.',
+    description: 'Aggressive efficiency optimization.',
     supportsThinking: false,
     rateLimitLabel: 'Low',
-    speedLabel: 'Instant'
+    speedLabel: 'Instant',
+    modalities: ['text']
   },
   {
-    id: 'gemini-2.5-flash', 
-    name: 'Gemini 2.5 Flash',
-    description: 'Previous generation speed king.',
-    supportsThinking: true,
-    maxThinkingBudget: 8192,
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash (Stable)',
+    description: 'Stable 2.0 branch.',
+    supportsThinking: false,
     rateLimitLabel: 'Low',
-    speedLabel: 'Fast'
+    speedLabel: 'Fast',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash (SOTA)',
+    description: 'Top-tier speed and intelligence.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Fast',
+    modalities: ['text']
   },
   {
     id: 'gemini-flash-lite-latest',
-    name: 'Gemini Flash Lite Latest',
-    description: 'Ultra-efficient, low latency.',
-    supportsThinking: true,
-    maxThinkingBudget: 4096,
+    name: 'Flash Lite (Latest)',
+    description: 'Current production Lite model.',
+    supportsThinking: false,
     rateLimitLabel: 'Low',
-    speedLabel: 'Instant'
+    speedLabel: 'Instant',
+    modalities: ['text']
   },
   {
-    id: 'gemini-robotics-er-1.6-preview',
-    name: 'Gemini Robotics 1.6',
-    description: 'Fine-tuned for educational contexts.',
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    description: 'Unparalleled reasoned intelligence.',
     supportsThinking: false,
     rateLimitLabel: 'Medium',
     speedLabel: 'Balanced',
-    isExperimental: true
+    modalities: ['text']
   },
   {
-    id: 'gemini-flash-latest',
-    name: 'Gemini Flash Latest',
-    description: 'Open weights model served via API.',
+    id: 'gemini-3.1-flash-live-preview',
+    name: 'Gemini 3.1 Flash Live',
+    description: 'Native audio and real-time streaming.',
+    supportsThinking: false,
+    rateLimitLabel: 'Medium',
+    speedLabel: 'Instant',
+    modalities: ['audio']
+  },
+  {
+    id: 'gemini-3.1-flash-tts-preview',
+    name: 'Gemini 3.1 Flash TTS',
+    description: 'Expressive Text-to-Speech engine.',
     supportsThinking: false,
     rateLimitLabel: 'Low',
-    speedLabel: 'Fast'
+    speedLabel: 'Instant',
+    modalities: ['audio']
+  },
+  {
+    id: 'lyria-3-pro-preview',
+    name: 'Lyria Pro (Full)',
+    description: 'High-fidelity music generation.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Balanced',
+    modalities: ['audio']
+  },
+  {
+    id: 'gemini-robotics-er-1.6-preview',
+    name: 'Gemini Robotics ER',
+    description: 'Logic specialized for robotics.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Balanced',
+    modalities: ['text']
+  },
+  {
+    id: 'gemma-4-26b-a4b-it',
+    name: 'Gemma 4 26B-IT',
+    description: 'Advanced open weights instruction model.',
+    supportsThinking: false,
+    rateLimitLabel: 'Medium',
+    speedLabel: 'Fast',
+    modalities: ['text']
+  },
+  {
+    id: 'gemma-4-31b-it',
+    name: 'Gemma 4 31B-IT',
+    description: 'Premium open weights reasoning.',
+    supportsThinking: false,
+    rateLimitLabel: 'Medium',
+    speedLabel: 'Fast',
+    modalities: ['text']
+  },
+  {
+    id: 'gemini-2.5-flash-image',
+    name: 'Gemini 2.5 Flash Image',
+    description: 'Rapid image generation snapshots.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Fast',
+    modalities: ['image']
+  },
+  {
+    id: 'gemini-3.1-flash-image-preview',
+    name: 'Gemini 3.1 Flash Image',
+    description: 'Latest HD image generation.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Fast',
+    modalities: ['image']
+  },
+  {
+    id: 'gemini-3-pro-image-preview',
+    name: 'Gemini 3 Pro Image',
+    description: 'Professional-grade creative imaging.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Deep Thought',
+    modalities: ['image']
   }
 ];
 
@@ -266,7 +532,8 @@ export const AESTHETICS: Aesthetic[] = [
       accent: 'text-indigo-400',
       accentHover: 'hover:text-cyan-400',
       border: 'border-indigo-900/50',
-      highlight: 'text-cyan-500'
+      highlight: 'text-cyan-500',
+      font: 'font-mono'
     }
   },
   {
@@ -281,7 +548,8 @@ export const AESTHETICS: Aesthetic[] = [
       accent: 'text-pink-400',
       accentHover: 'hover:text-cyan-300',
       border: 'border-fuchsia-800/40',
-      highlight: 'text-cyan-400'
+      highlight: 'text-cyan-400',
+      font: 'font-display'
     }
   },
   {
@@ -296,7 +564,8 @@ export const AESTHETICS: Aesthetic[] = [
       accent: 'text-emerald-700',
       accentHover: 'hover:text-emerald-500',
       border: 'border-emerald-200',
-      highlight: 'text-orange-500'
+      highlight: 'text-orange-500',
+      font: 'font-soft'
     }
   },
   {
@@ -311,7 +580,8 @@ export const AESTHETICS: Aesthetic[] = [
       accent: 'text-black',
       accentHover: 'hover:bg-black hover:text-white',
       border: 'border-black border-2',
-      highlight: 'text-lime-600'
+      highlight: 'text-lime-600',
+      font: 'font-impact'
     }
   },
   {
@@ -326,7 +596,8 @@ export const AESTHETICS: Aesthetic[] = [
       accent: 'text-green-400',
       accentHover: 'hover:text-green-200',
       border: 'border-green-900',
-      highlight: 'text-green-300'
+      highlight: 'text-green-300',
+      font: 'font-mono'
     }
   },
   {
@@ -341,16 +612,616 @@ export const AESTHETICS: Aesthetic[] = [
       accent: 'text-red-900',
       accentHover: 'hover:text-red-700',
       border: 'border-stone-300',
-      highlight: 'text-amber-800'
+      highlight: 'text-amber-800',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'glitch',
+    name: 'System Error',
+    promptModifier: 'Prioritize visually broken, glitchy, and fragmented websites with overlapping text and flickering elements.',
+    styles: {
+      bg: 'bg-black',
+      cardBg: 'bg-red-950/20',
+      text: 'text-red-500',
+      subText: 'text-red-900',
+      accent: 'text-white',
+      accentHover: 'hover:text-red-400',
+      border: 'border-red-900',
+      highlight: 'text-yellow-400',
+      font: 'font-mono'
+    }
+  },
+  {
+    id: 'midnight',
+    name: 'Midnight',
+    promptModifier: 'Prioritize deep blue and black websites that feel vast, quiet, and moonlit.',
+    styles: {
+      bg: 'bg-[#000510]',
+      cardBg: 'bg-[#001030]/80',
+      text: 'text-blue-100',
+      subText: 'text-blue-500',
+      accent: 'text-blue-400',
+      accentHover: 'hover:text-white',
+      border: 'border-blue-900',
+      highlight: 'text-indigo-300',
+      font: 'font-sans'
+    }
+  },
+  {
+    id: 'forest',
+    name: 'Deep Forest',
+    promptModifier: 'Prioritize green, organic, and nature-heavy websites with textures of moss and wood.',
+    styles: {
+      bg: 'bg-[#0a1a0a]',
+      cardBg: 'bg-[#1a2a1a]/80',
+      text: 'text-emerald-100',
+      subText: 'text-emerald-800',
+      accent: 'text-emerald-500',
+      accentHover: 'hover:text-lime-400',
+      border: 'border-emerald-900',
+      highlight: 'text-lime-500',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'sepia',
+    name: 'Nostalgia',
+    promptModifier: 'Prioritize sepia-toned, aged, and dusty websites that feel like old photographs.',
+    styles: {
+      bg: 'bg-[#3b2b1d]',
+      cardBg: 'bg-[#4d3b2b]/90',
+      text: 'text-[#d4c3b3]',
+      subText: 'text-[#8b735b]',
+      accent: 'text-[#e6d5c3]',
+      accentHover: 'hover:text-white',
+      border: 'border-[#5d4b3b]',
+      highlight: 'text-amber-500',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'high_contrast',
+    name: 'High Contrast',
+    promptModifier: 'Prioritize stark black and white websites with no grays, extremely bold typography.',
+    styles: {
+      bg: 'bg-black',
+      cardBg: 'bg-white',
+      text: 'text-black',
+      subText: 'text-gray-400',
+      accent: 'text-black',
+      accentHover: 'hover:bg-black hover:text-white',
+      border: 'border-white',
+      highlight: 'text-red-600',
+      font: 'font-impact'
+    }
+  },
+  {
+    id: 'clay',
+    name: 'Claymorphism',
+    promptModifier: 'Prioritize websites with soft, rounded, 3D clay-like elements and pastel colors.',
+    styles: {
+      bg: 'bg-[#e0e5ec]',
+      cardBg: 'bg-[#e0e5ec]',
+      text: 'text-[#303841]',
+      subText: 'text-[#7e8a97]',
+      accent: 'text-[#6d5dfc]',
+      accentHover: 'hover:text-[#5b4cfc]',
+      border: 'border-transparent',
+      highlight: 'text-blue-500',
+      font: 'font-soft'
+    }
+  },
+  {
+    id: 'neon_city',
+    name: 'Neon City',
+    promptModifier: 'Prioritize night-time urban aesthetics with bright neon signs and wet pavement reflections.',
+    styles: {
+      bg: 'bg-[#0d0221]',
+      cardBg: 'bg-[#0f084b]/60',
+      text: 'text-[#00ffc8]',
+      subText: 'text-[#00c2ff]',
+      accent: 'text-[#ff00ff]',
+      accentHover: 'hover:text-[#ff99ff]',
+      border: 'border-[#542dff]',
+      highlight: 'text-yellow-400',
+      font: 'font-bebas'
+    }
+  },
+  {
+    id: 'arctic',
+    name: 'Arctic',
+    promptModifier: 'Prioritize crystal clear, icy blue, and white websites that feel freezing cold.',
+    styles: {
+      bg: 'bg-[#f0f8ff]',
+      cardBg: 'bg-white/40',
+      text: 'text-[#2c3e50]',
+      subText: 'text-[#3498db]',
+      accent: 'text-[#3498db]',
+      accentHover: 'hover:text-[#2980b9]',
+      border: 'border-[#add8e6]',
+      highlight: 'text-cyan-600',
+      font: 'font-sans'
+    }
+  },
+  {
+    id: 'magma',
+    name: 'Magma',
+    promptModifier: 'Prioritize volcanic, lava-filled, black and glowing orange aesthetics.',
+    styles: {
+      bg: 'bg-[#1a0a00]',
+      cardBg: 'bg-[#331400]/80',
+      text: 'text-[#ff9900]',
+      subText: 'text-[#662200]',
+      accent: 'text-[#ff4500]',
+      accentHover: 'hover:text-[#ff6347]',
+      border: 'border-[#8B0000]',
+      highlight: 'text-yellow-500',
+      font: 'font-impact'
+    }
+  },
+  {
+    id: 'amethyst',
+    name: 'Amethyst',
+    promptModifier: 'Prioritize deep purple and crystal-inspired websites.',
+    styles: {
+      bg: 'bg-[#1a0033]',
+      cardBg: 'bg-[#330066]/60',
+      text: 'text-[#e6ccff]',
+      subText: 'text-[#9900ff]',
+      accent: 'text-[#cc33ff]',
+      accentHover: 'hover:text-white',
+      border: 'border-[#4b0082]',
+      highlight: 'text-[#ff00ff]',
+      font: 'font-soft'
+    }
+  },
+  {
+    id: 'barbie',
+    name: 'Doll House',
+    promptModifier: 'Prioritize overwhelmingly pink, plastic, and hyper-feminine aesthetics.',
+    styles: {
+      bg: 'bg-[#ffc0cb]',
+      cardBg: 'bg-white/90',
+      text: 'text-[#ff1493]',
+      subText: 'text-[#db7093]',
+      accent: 'text-[#ff69b4]',
+      accentHover: 'hover:text-[#ff1493]',
+      border: 'border-[#ff69b4]',
+      highlight: 'text-white',
+      font: 'font-soft'
+    }
+  },
+  {
+    id: 'terminal_classic',
+    name: 'Amber CRT',
+    promptModifier: 'Prioritize amber-on-black terminal aesthetics from the early days of computing.',
+    styles: {
+      bg: 'bg-black',
+      cardBg: 'bg-black',
+      text: 'text-amber-500',
+      subText: 'text-amber-900',
+      accent: 'text-amber-400',
+      accentHover: 'hover:text-white',
+      border: 'border-amber-800',
+      highlight: 'text-amber-200',
+      font: 'font-mono'
+    }
+  },
+  {
+    id: 'monochrome_blue',
+    name: 'Blueprint',
+    promptModifier: 'Prioritize industrial, blueprint-style, technical websites with all blue tones.',
+    styles: {
+      bg: 'bg-[#003366]',
+      cardBg: 'bg-[#002244]',
+      text: 'text-[#99ccff]',
+      subText: 'text-[#6699ff]',
+      accent: 'text-white',
+      accentHover: 'hover:text-cyan-200',
+      border: 'border-[#004488]',
+      highlight: 'text-yellow-400',
+      font: 'font-typewriter'
+    }
+  },
+  {
+    id: 'sunset',
+    name: 'Sunset',
+    promptModifier: 'Prioritize websites with gradients of orange, pink, and deep purple.',
+    styles: {
+      bg: 'bg-gradient-to-b from-[#ff8c00] to-[#800080]',
+      cardBg: 'bg-black/20',
+      text: 'text-white',
+      subText: 'text-orange-200',
+      accent: 'text-pink-300',
+      accentHover: 'hover:text-orange-300',
+      border: 'border-white/10',
+      highlight: 'text-yellow-400',
+      font: 'font-display'
+    }
+  },
+  {
+    id: 'gothic',
+    name: 'Victorian Noir',
+    promptModifier: 'Prioritize dark, ornate, gothic, and Victorian-inspired digital spaces.',
+    styles: {
+      bg: 'bg-[#0a0a0a]',
+      cardBg: 'bg-[#151515]',
+      text: 'text-stone-400',
+      subText: 'text-stone-700',
+      accent: 'text-red-900',
+      accentHover: 'hover:text-stone-200',
+      border: 'border-stone-800',
+      highlight: 'text-white',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'jungle',
+    name: 'Rainforest',
+    promptModifier: 'Prioritize hyper-saturated green and vibrant floral aesthetics.',
+    styles: {
+      bg: 'bg-[#002200]',
+      cardBg: 'bg-[#003300]/80',
+      text: 'text-lime-200',
+      subText: 'text-emerald-800',
+      accent: 'text-yellow-400',
+      accentHover: 'hover:text-lime-400',
+      border: 'border-emerald-700',
+      highlight: 'text-orange-400',
+      font: 'font-bebas'
+    }
+  },
+  {
+    id: 'space_station',
+    name: 'Orbital',
+    promptModifier: 'Prioritize sterile, white, clean, and high-tech space station interiors.',
+    styles: {
+      bg: 'bg-[#f4f7f6]',
+      cardBg: 'bg-white',
+      text: 'text-slate-900',
+      subText: 'text-slate-400',
+      accent: 'text-blue-600',
+      accentHover: 'hover:text-orange-500',
+      border: 'border-slate-200',
+      highlight: 'text-red-500',
+      font: 'font-mono'
+    }
+  },
+  {
+    id: 'vapor_light',
+    name: 'Windows 95',
+    promptModifier: 'Prioritize the gray-dominated, classic UI aesthetic of early 90s operating systems.',
+    styles: {
+      bg: 'bg-[#008080]',
+      cardBg: 'bg-[#c0c0c0]',
+      text: 'text-black',
+      subText: 'text-black/60',
+      accent: 'text-[#000080]',
+      accentHover: 'hover:bg-gray-400',
+      border: 'border-white border-t-2 border-l-2 border-gray-800 border-r-2 border-b-2',
+      highlight: 'text-[#000080]',
+      font: 'font-sans'
+    }
+  },
+  {
+    id: 'glass',
+    name: 'Glassmorphism',
+    promptModifier: 'Prioritize websites with heavy background blur, frosted glass elements, and soft lighting.',
+    styles: {
+      bg: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500',
+      cardBg: 'bg-white/10 backdrop-blur-md',
+      text: 'text-white',
+      subText: 'text-white/60',
+      accent: 'text-white/80',
+      accentHover: 'hover:bg-white/20',
+      border: 'border-white/20',
+      highlight: 'text-white',
+      font: 'font-soft'
+    }
+  },
+  {
+    id: 'horror',
+    name: 'Found Footage',
+    promptModifier: 'Prioritize grainy, low-quality, unsettling, and hidden-camera aesthetics.',
+    styles: {
+      bg: 'bg-[#050505]',
+      cardBg: 'bg-green-950/10',
+      text: 'text-white/40',
+      subText: 'text-white/10',
+      accent: 'text-white/60',
+      accentHover: 'hover:text-red-900',
+      border: 'border-white/5',
+      highlight: 'text-green-500',
+      font: 'font-typewriter'
+    }
+  },
+  {
+    id: 'clay_dark',
+    name: 'Deep Sea',
+    promptModifier: 'Prioritize dark blue, pressure-heavy, and bioluminescent aesthetics.',
+    styles: {
+      bg: 'bg-[#000814]',
+      cardBg: 'bg-[#001d3d]/80',
+      text: 'text-[#00b4d8]',
+      subText: 'text-[#0077b6]',
+      accent: 'text-[#90e0ef]',
+      accentHover: 'hover:text-white',
+      border: 'border-[#003566]',
+      highlight: 'text-[#caf0f8]',
+      font: 'font-soft'
+    }
+  },
+  {
+    id: 'gold',
+    name: 'Golden Hour',
+    promptModifier: 'Prioritize warm, glowing, and luxurious golden aesthetics.',
+    styles: {
+      bg: 'bg-[#1a1400]',
+      cardBg: 'bg-[#332a00]/80',
+      text: 'text-[#ffd700]',
+      subText: 'text-[#806b00]',
+      accent: 'text-[#ffcc00]',
+      accentHover: 'hover:text-white',
+      border: 'border-[#554400]',
+      highlight: 'text-[#fff5cc]',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'phantom',
+    name: 'Phantom',
+    promptModifier: 'Prioritize near-invisible, ethereal, and ghostly minimalist websites.',
+    styles: {
+      bg: 'bg-white',
+      cardBg: 'bg-gray-50/10',
+      text: 'text-gray-200',
+      subText: 'text-gray-100',
+      accent: 'text-gray-300',
+      accentHover: 'hover:text-gray-900',
+      border: 'border-gray-50',
+      highlight: 'text-indigo-50',
+      font: 'font-sans'
+    }
+  },
+  {
+    id: 'blood',
+    name: 'Sanguine',
+    promptModifier: 'Prioritize deep red and black aesthetics with a sense of ritual.',
+    styles: {
+      bg: 'bg-black',
+      cardBg: 'bg-red-950/40',
+      text: 'text-red-700',
+      subText: 'text-red-900',
+      accent: 'text-red-600',
+      accentHover: 'hover:text-white',
+      border: 'border-red-950',
+      highlight: 'text-stone-200',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'bio',
+    name: 'Bio-Organic',
+    promptModifier: 'Prioritize mossy greens, organic textures, and nature-inspired digital growths.',
+    styles: {
+      bg: 'bg-[#0a0f08]',
+      cardBg: 'bg-[#152010]/80',
+      text: 'text-emerald-200',
+      subText: 'text-emerald-900',
+      accent: 'text-lime-500',
+      accentHover: 'hover:text-lime-300',
+      border: 'border-emerald-950',
+      highlight: 'text-emerald-400',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'circuit',
+    name: 'Neural Circuit',
+    promptModifier: 'Prioritize blueprint blues, glowing yellow lines, and technical schematics.',
+    styles: {
+      bg: 'bg-[#001122]',
+      cardBg: 'bg-[#002244]/90',
+      text: 'text-cyan-400',
+      subText: 'text-blue-900',
+      accent: 'text-yellow-400',
+      accentHover: 'hover:text-white',
+      border: 'border-blue-800',
+      highlight: 'text-blue-300',
+      font: 'font-futuristic'
+    }
+  },
+  {
+    id: 'pixel',
+    name: '8-Bit Retro',
+    promptModifier: 'Prioritize pixel art, limited color palettes, and classic arcade aesthetics.',
+    styles: {
+      bg: 'bg-[#222222]',
+      cardBg: 'bg-[#333333]',
+      text: 'text-green-400',
+      subText: 'text-stone-600',
+      accent: 'text-pink-500',
+      accentHover: 'hover:text-cyan-400',
+      border: 'border-stone-800 border-4',
+      highlight: 'text-yellow-400',
+      font: 'font-pixel'
+    }
+  },
+  {
+    id: 'gothic_digital',
+    name: 'Cyber Gothic',
+    promptModifier: 'Prioritize dark, ornate, yet high-tech aesthetics. Spikes, wires, and velvet.',
+    styles: {
+      bg: 'bg-[#080008]',
+      cardBg: 'bg-[#150015]',
+      text: 'text-fuchsia-100',
+      subText: 'text-fuchsia-900',
+      accent: 'text-fuchsia-500',
+      accentHover: 'hover:text-white',
+      border: 'border-fuchsia-950',
+      highlight: 'text-red-500',
+      font: 'font-gothic'
+    }
+  },
+  {
+    id: 'holy',
+    name: 'The Cathedral',
+    promptModifier: 'Prioritize divine, glowing gold, marble white, and ethereal light.',
+    styles: {
+      bg: 'bg-[#fafaf5]',
+      cardBg: 'bg-white',
+      text: 'text-stone-800',
+      subText: 'text-amber-600',
+      accent: 'text-amber-500',
+      accentHover: 'hover:text-amber-300',
+      border: 'border-amber-100',
+      highlight: 'text-blue-400',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'industrial',
+    name: 'Rust & Iron',
+    promptModifier: 'Prioritize rusty oranges, cold steel grays, and heavy machinery vibes.',
+    styles: {
+      bg: 'bg-[#1a1512]',
+      cardBg: 'bg-[#2a221d]',
+      text: 'text-orange-200',
+      subText: 'text-stone-600',
+      accent: 'text-orange-600',
+      accentHover: 'hover:text-orange-400',
+      border: 'border-stone-800',
+      highlight: 'text-stone-300',
+      font: 'font-impact'
+    }
+  },
+  {
+    id: 'dream',
+    name: 'Cloud Dream',
+    promptModifier: 'Prioritize soft whites, pale blues, and fluffy, ethereal cloud aesthetics.',
+    styles: {
+      bg: 'bg-[#f0f4f8]',
+      cardBg: 'bg-white/60',
+      text: 'text-blue-900',
+      subText: 'text-blue-200',
+      accent: 'text-blue-400',
+      accentHover: 'hover:text-blue-600',
+      border: 'border-blue-50',
+      highlight: 'text-white',
+      font: 'font-soft'
+    }
+  },
+  {
+    id: 'glitch_white',
+    name: 'Overexposed',
+    promptModifier: 'Prioritize blindingly white, flickering, and high-energy digital glare.',
+    styles: {
+      bg: 'bg-white',
+      cardBg: 'bg-gray-100',
+      text: 'text-black',
+      subText: 'text-gray-300',
+      accent: 'text-gray-900',
+      accentHover: 'hover:text-cyan-500',
+      border: 'border-gray-200',
+      highlight: 'text-red-500',
+      font: 'font-mono'
+    }
+  },
+  {
+    id: 'lush_cave',
+    name: 'Lush Cave',
+    promptModifier: 'Prioritize deep jungle greens, warm earth tones, and bioluminescent highlights.',
+    styles: {
+      bg: 'bg-[#0b1a0e]',
+      cardBg: 'bg-[#1a2e1d]/90',
+      text: 'text-emerald-300',
+      subText: 'text-emerald-700',
+      accent: 'text-lime-400',
+      accentHover: 'hover:text-white',
+      border: 'border-emerald-900',
+      highlight: 'text-emerald-100',
+      font: 'font-soft'
+    }
+  },
+  {
+    id: 'papercraft',
+    name: 'Papercraft',
+    promptModifier: 'Prioritize beige paper textures, rough edges, and hand-drawn elements.',
+    styles: {
+      bg: 'bg-[#e6ddc4]',
+      cardBg: 'bg-[#f5f0e1]',
+      text: 'text-[#5d4037]',
+      subText: 'text-[#8d6e63]',
+      accent: 'text-[#3e2723]',
+      accentHover: 'hover:text-black',
+      border: 'border-[#a1887f] border-2',
+      highlight: 'text-orange-700',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'noir',
+    name: 'Noir Noir',
+    promptModifier: 'Prioritize monochrome, high contrast, rain-slicked, and shadow-heavy aesthetics.',
+    styles: {
+      bg: 'bg-black',
+      cardBg: 'bg-neutral-900',
+      text: 'text-white',
+      subText: 'text-neutral-500',
+      accent: 'text-neutral-300',
+      accentHover: 'hover:text-white',
+      border: 'border-neutral-800',
+      highlight: 'text-stone-400',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'candy',
+    name: 'Candy Land',
+    promptModifier: 'Prioritize hyper-saturated pinks, blues, and yellows. Sugary sweet and loud.',
+    styles: {
+      bg: 'bg-pink-50',
+      cardBg: 'bg-white/90',
+      text: 'text-pink-600',
+      subText: 'text-pink-200',
+      accent: 'text-cyan-400',
+      accentHover: 'hover:text-yellow-400',
+      border: 'border-pink-100',
+      highlight: 'text-fuchsia-500',
+      font: 'font-soft'
+    }
+  },
+  {
+    id: 'inferno',
+    name: 'Total Inferno',
+    promptModifier: 'Prioritize burning oranges, blacks, and smoldering ember aesthetics.',
+    styles: {
+      bg: 'bg-[#110000]',
+      cardBg: 'bg-[#220000]',
+      text: 'text-orange-600',
+      subText: 'text-red-950',
+      accent: 'text-red-500',
+      accentHover: 'hover:text-yellow-500',
+      border: 'border-red-900',
+      highlight: 'text-orange-400',
+      font: 'font-impact'
     }
   }
 ];
 
 export const TIME_ERAS: TimeEra[] = [
   { id: 'all', name: 'All Time', range: '1991-2025', description: 'The entire history of the web.' },
-  { id: 'web1', name: 'Web 1.0', range: '1991-2004', description: 'The HTML era. Geocities, flash, personal homepages.' },
-  { id: 'web2', name: 'Web 2.0', range: '2005-2014', description: 'The social era. Blogs, early apps, interactive experiments.' },
-  { id: 'modern', name: 'Modern Web', range: '2015-2025', description: 'The current era. WebGL, AI, polished design.' },
+  { id: 'early', name: 'Static Era', range: '1991-1995', description: 'The birth of the web. pure HTML, no CSS, just information.' },
+  { id: 'web1', name: 'Web 1.0 Boom', range: '1996-2000', description: 'Geocities, framesets, animated GIFs, and the first web portals.' },
+  { id: 'post_bubble', name: 'The Silent Years', range: '2001-2004', description: 'Web after the crash. Flash starts to dominate interactive art.' },
+  { id: 'web2', name: 'Social Dawn', range: '2005-2009', description: 'The rise of blogs, AJAX, early YouTube, and communal digital spaces.' },
+  { id: 'app_era', name: 'The App Era', range: '2010-2015', description: 'Mobile-first design, skeuomorphism dying, and the rise of the cloud.' },
+  { id: 'modern', name: 'Modern Web', range: '2016-2023', description: 'WebGL, SPAs, and complex interactivity.' },
+  { id: 'ai_dawn', name: 'AI Genesis', range: '2024-2025', description: 'Generative interfaces, LLM agents, and the breakdown of static content.' },
+  { id: 'golden_age', name: 'The Golden Age', range: '2008-2012', description: 'The peak of creative web exploration before extreme centralization.' },
+  { id: 'void_future', name: 'The Void', range: '2030+', description: 'Speculative future web. Post-reality digital spaces.' },
+  { id: 'pre_web', name: 'Pre-Web', range: '1960-1990', description: 'Theoretical sites emulating ARPANET, BBS, and early intranet systems.' },
 ];
 
 export const INITIAL_SITES: Site[] = [

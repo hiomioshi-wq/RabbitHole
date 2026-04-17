@@ -44,8 +44,9 @@ export interface AIModel {
   supportsThinking: boolean;
   maxThinkingBudget?: number;
   rateLimitLabel: 'Low' | 'Medium' | 'High' | 'Extreme';
-  speedLabel: 'Instant' | 'Fast' | 'Balanced' | 'Deep Thought';
+  speedLabel: 'Instant' | 'Turbo' | 'Fast' | 'Balanced' | 'Deep Thought' | 'Legacy';
   isExperimental?: boolean;
+  modalities?: ('text' | 'audio' | 'image' | 'video')[];
 }
 
 export interface Aesthetic {
@@ -61,6 +62,7 @@ export interface Aesthetic {
     accentHover: string;
     border: string;
     highlight: string;
+    font?: string;
   };
 }
 
