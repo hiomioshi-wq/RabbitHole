@@ -22,27 +22,29 @@ const playSound = (type: 'static' | 'blip' | 'success') => {
     if (type === 'static') {
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(100, now);
-      osc.frequency.linearRampToValueAtTime(800, now + 0.1);
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
       osc.start(now);
-      osc.stop(now + 0.15);
+      osc.stop(now + 0.2);
     } else if (type === 'blip') {
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, now);
-      osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.linearRampToValueAtTime(0, now + 0.1);
+      osc.frequency.setValueAtTime(1000, now);
+      osc.frequency.exponentialRampToValueAtTime(500, now + 0.05);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.linearRampToValueAtTime(0, now + 0.05);
       osc.start(now);
-      osc.stop(now + 0.1);
+      osc.stop(now + 0.05);
     } else if (type === 'success') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(300, now);
-      osc.frequency.linearRampToValueAtTime(600, now + 0.2);
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.linearRampToValueAtTime(0, now + 0.4);
+      const g2 = ctx.createGain();
+      g2.connect(ctx.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
       osc.start(now);
-      osc.stop(now + 0.4);
+      osc.stop(now + 0.3);
     }
   } catch (e) {
     // Ignore audio errors
@@ -83,6 +85,58 @@ const COLLECTIONS = [
   { id: 'search', label: 'Web Search', icon: Search, query: 'obscure search engines and directories' },
   { id: 'games', label: 'Games', icon: Dices, query: 'weird obscure browser games' },
 ];
+
+const MatrixRain: React.FC = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        const columns = Math.floor(width / 20);
+        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%\"'#&_(),.;:?!\\|{}<>[]^~";
+        const drops: number[] = new Array(columns).fill(1);
+
+        const draw = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.fillStyle = '#0f0';
+            ctx.font = '15pt monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = characters.charAt(Math.floor(Math.random() * characters.length));
+                ctx.fillText(text, i * 20, drops[i] * 20);
+
+                if (drops[i] * 20 > height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        };
+
+        const interval = setInterval(draw, 33);
+        const handleResize = () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            drops.length = Math.floor(width / 20);
+            drops.fill(1);
+        };
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+
+    return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none opacity-20 z-0" />;
+};
 
 const App: React.FC = () => {
   // State
@@ -358,10 +412,35 @@ const App: React.FC = () => {
     }
   }, [selectedCategory, selectedTag, siteQueue, fallbackStumble, fetchMoreSites, addToHistory, isSearchActive, searchQuery, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra]); 
 
-  // Reset queue when config changes
   useEffect(() => {
     setSiteQueue([]);
   }, [activePersona, activeModel, activeAesthetic, activeEra]);
+
+  const NeuralLoading = () => (
+    <div className="text-center relative">
+       <div className="relative w-32 h-32 mx-auto mb-8">
+          <div className={`absolute inset-0 rounded-full border-4 ${activeAesthetic.styles.border} border-t-transparent animate-spin`} />
+          <div className={`absolute inset-2 rounded-full border-4 ${activeAesthetic.styles.border} border-b-transparent animate-spin-reverse opacity-50`} />
+          <div className="absolute inset-0 flex items-center justify-center">
+             <BrainCircuit className={`${activeAesthetic.styles.accent} animate-pulse`} size={40} />
+          </div>
+       </div>
+       <div className="space-y-2">
+          <p className={`${activeAesthetic.styles.text} font-display animate-pulse text-2xl tracking-[0.2em] font-bold uppercase`}>
+             Neural Link Established
+          </p>
+          <p className={`${activeAesthetic.styles.subText} text-xs font-mono uppercase tracking-widest`}>
+             Sourcing from {activeEra.name} matrix...
+          </p>
+          {activeModel.supportsThinking && thinkingBudget > 0 && (
+             <div className={`inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-black/30 border ${activeAesthetic.styles.border}`}>
+                <Zap size={12} className={activeAesthetic.styles.highlight} />
+                <span className={`text-[10px] font-mono ${activeAesthetic.styles.text}`}>Thinking Budget: {thinkingBudget} tokens</span>
+             </div>
+          )}
+       </div>
+    </div>
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -403,6 +482,19 @@ const App: React.FC = () => {
   return (
     <div className={`min-h-screen ${activeAesthetic.styles.bg} ${activeAesthetic.styles.text} font-sans transition-colors duration-700 flex flex-col relative overflow-hidden`}>
       
+      {/* Dynamic Background Noise */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+          </filter>
+          <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
+        </svg>
+      </div>
+
+      {/* Matrix Rain Effect */}
+      {activeAesthetic.id === 'matrix' && <MatrixRain />}
+
       {/* CRT Scanline Effect */}
       {retroMode && (
         <div className="fixed inset-0 pointer-events-none z-50 opacity-[0.05] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
@@ -415,6 +507,21 @@ const App: React.FC = () => {
 
       {/* Header */}
       <header className={`sticky top-0 z-40 w-full border-b ${activeAesthetic.styles.border} ${activeAesthetic.styles.bg}/80 backdrop-blur-md transition-colors duration-700`}>
+        {/* Category Filter Bar */}
+        <div className={`w-full overflow-x-auto no-scrollbar border-b ${activeAesthetic.styles.border} py-2 px-4 bg-black/5`}>
+          <div className="max-w-7xl mx-auto flex gap-4 min-w-max">
+            {Object.values(Category).map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`text-[10px] uppercase tracking-widest font-bold px-3 py-1 rounded-full transition-all border ${selectedCategory === cat ? `${activeAesthetic.styles.accent.replace('text-', 'bg-')} text-white border-transparent` : `${activeAesthetic.styles.subText} border-transparent hover:border-current hover:${activeAesthetic.styles.text}`}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+        
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => { setShowWelcome(true); playSound('blip'); }}>
             <div className={`p-2 rounded-lg ${activeAesthetic.id === 'solar' ? 'bg-emerald-600 text-white' : activeAesthetic.id === 'vapor' ? 'bg-fuchsia-600 text-white' : activeAesthetic.id === 'brutal' ? 'bg-lime-600 text-black' : 'bg-indigo-600 text-white'}`}>
@@ -443,6 +550,20 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-3 flex-shrink-0">
              
+             {/* Queue Status */}
+             {!showWelcome && (
+               <div className={`hidden md:flex flex-col items-end mr-2 px-3 py-1 rounded border ${activeAesthetic.styles.border} bg-black/10`}>
+                 <div className="flex items-center gap-2">
+                   <div className="flex gap-0.5">
+                     {[...Array(5)].map((_, i) => (
+                       <div key={i} className={`w-1 h-3 rounded-full ${i < Math.ceil(siteQueue.length / 5) ? activeAesthetic.styles.accent.replace('text-', 'bg-') : 'bg-gray-700'}`} />
+                     ))}
+                   </div>
+                   <span className={`text-[10px] font-mono font-bold ${activeAesthetic.styles.text}`}>{siteQueue.length} SITES QUEUED</span>
+                 </div>
+               </div>
+             )}
+
              {/* Config Toggle */}
              <div className="relative">
                  <button 
@@ -619,10 +740,18 @@ const App: React.FC = () => {
         <div className={`absolute -bottom-8 left-20 w-72 h-72 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000 ${activeAesthetic.id === 'solar' ? 'bg-orange-400' : activeAesthetic.id === 'vapor' ? 'bg-purple-400' : activeAesthetic.id === 'brutal' ? 'bg-black' : 'bg-pink-600'}`}></div>
 
         {showWelcome ? (
-          <div className="text-center max-w-3xl z-10 animate-fade-in relative">
-            <div className={`mb-6 inline-flex items-center justify-center p-4 ${activeAesthetic.styles.cardBg} rounded-2xl border ${activeAesthetic.styles.border} backdrop-blur shadow-2xl`}>
-               <Rabbit size={48} className={activeAesthetic.styles.accent} />
-            </div>
+          <div className="text-center max-w-4xl z-10 animate-fade-in relative px-4">
+             <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 bg-indigo-500/20 blur-[100px] rounded-full pointer-events-none" />
+             
+             <div className={`mb-6 inline-flex items-center justify-center p-4 ${activeAesthetic.styles.cardBg} rounded-2xl border ${activeAesthetic.styles.border} backdrop-blur shadow-2xl relative`}>
+                <Rabbit size={48} className={activeAesthetic.styles.accent} />
+                <div className="absolute -top-1 -right-1 flex">
+                   <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                   </span>
+                </div>
+             </div>
             <h1 className={`text-5xl md:text-7xl font-display font-bold ${activeAesthetic.styles.text} mb-6 tracking-tighter`}>
               Dive into the <br/>
               <span className={`text-transparent bg-clip-text bg-gradient-to-r ${activeAesthetic.id === 'vapor' ? 'from-cyan-400 to-pink-400' : activeAesthetic.id === 'solar' ? 'from-yellow-400 to-emerald-400' : activeAesthetic.id === 'brutal' ? 'from-gray-100 to-gray-500' : 'from-indigo-400 to-pink-400'}`}>Weird Web</span>
@@ -666,21 +795,7 @@ const App: React.FC = () => {
         ) : (
           <div className="w-full max-w-4xl z-10 animate-fade-in min-h-[500px] flex items-center justify-center">
             {status === 'loading' ? (
-              <div className="text-center">
-                 <div className={`w-16 h-16 border-4 ${activeAesthetic.styles.border} border-t-current rounded-full animate-spin mx-auto mb-4 ${activeAesthetic.styles.accent}`}></div>
-                 <p className={`${activeAesthetic.styles.subText} font-display animate-pulse text-lg tracking-widest uppercase`}>
-                    {activeModel.name} PROCESSING...
-                 </p>
-                 {activeModel.supportsThinking && thinkingBudget > 0 && (
-                     <div className="mt-4 flex flex-col items-center gap-2">
-                        {/* Fix: Added BrainCircuit to imports */}
-                        <BrainCircuit className={`${activeAesthetic.styles.accent} animate-pulse`} size={24} />
-                        <p className={`text-xs ${activeAesthetic.styles.highlight} font-mono`}>THINKING... ({thinkingBudget} tokens)</p>
-                     </div>
-                 )}
-                 {activeEra.id !== 'all' && <p className={`text-xs ${activeAesthetic.styles.subText} mt-2`}>Time Travel: {activeEra.name}</p>}
-                 {selectedTag && <p className={`text-xs ${activeAesthetic.styles.subText} mt-2`}>Target: #{selectedTag}</p>}
-              </div>
+              <NeuralLoading />
             ) : currentSite ? (
               <div className="w-full">
                  {isSearchActive && (

@@ -6,7 +6,7 @@ import { AI_MODELS } from '../constants';
 // We use a safe access pattern for runtime environments where process might be missing.
 const API_KEY = (() => {
   try {
-    return import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
+    return (import.meta as any).env.VITE_GEMINI_API_KEY || (process as any).env.GEMINI_API_KEY || (process as any).env.API_KEY;
   } catch (e) {
     return '';
   }
@@ -147,7 +147,18 @@ export const fetchRecommendations = async (
     Rules: Must be real/online. No mainstream sites.
     
     Return JSON array in \`\`\`json:
-    [{ "title": "...", "url": "https://...", "description": "...", "category": "One of: ${Object.values(Category).join(', ')}", "tags": ["t1", "t2"], "yearEstablished": "YYYY", "curatorNote": "..." }]
+    [{ 
+      "title": "...", 
+      "url": "https://...", 
+      "description": "...", 
+      "category": "One of: ${Object.values(Category).join(', ')}", 
+      "tags": ["t1", "t2"], 
+      "yearEstablished": "YYYY", 
+      "curatorNote": "...",
+      "designVibe": "e.g. Minimalist Glitch",
+      "technicalStack": ["React", "WebGL"],
+      "vibeScore": 85
+    }]
   `;
 
   try {
@@ -182,7 +193,18 @@ export const searchSites = async (
     Find ${count} REAL, UNIQUE websites for: "${query}".
     
     Return JSON array in \`\`\`json:
-    [{ "title": "...", "url": "https://...", "description": "...", "category": "One of: ${Object.values(Category).join(', ')}", "tags": ["t1", "t2"], "yearEstablished": "YYYY", "curatorNote": "..." }]
+    [{ 
+      "title": "...", 
+      "url": "https://...", 
+      "description": "...", 
+      "category": "One of: ${Object.values(Category).join(', ')}", 
+      "tags": ["t1", "t2"], 
+      "yearEstablished": "YYYY", 
+      "curatorNote": "...",
+      "designVibe": "Thematic vibe",
+      "technicalStack": [],
+      "vibeScore": 60
+    }]
   `;
 
   try {
@@ -215,7 +237,18 @@ export const findSimilarSites = async (
     ${timeConstraint}
     
     Return JSON array in \`\`\`json:
-    [{ "title": "...", "url": "https://...", "description": "...", "category": "One of: ${Object.values(Category).join(', ')}", "tags": ["t1", "t2"], "yearEstablished": "YYYY", "curatorNote": "..." }]
+    [{ 
+      "title": "...", 
+      "url": "https://...", 
+      "description": "...", 
+      "category": "One of: ${Object.values(Category).join(', ')}", 
+      "tags": ["t1", "t2"], 
+      "yearEstablished": "YYYY", 
+      "curatorNote": "...",
+      "designVibe": "Similar aesthetic",
+      "technicalStack": [],
+      "vibeScore": 75
+    }]
   `;
 
   try {

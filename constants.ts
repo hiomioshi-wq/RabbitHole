@@ -165,43 +165,43 @@ export const AESTHETICS: Aesthetic[] = [
   {
     id: 'cyber',
     name: 'Cyber Core',
-    promptModifier: 'Prioritize websites with a dark, neon, glitch-art, high-tech, or cyberpunk aesthetic.',
+    promptModifier: 'Prioritize websites with a dark, neon, glitch-art, high-tech, or cyberpunk aesthetic. Think Matrix, terminal interfaces, and hacker culture.',
     styles: {
-      bg: 'bg-slate-950',
-      cardBg: 'bg-slate-900',
-      text: 'text-slate-200',
-      subText: 'text-slate-400',
+      bg: 'bg-[#050505]',
+      cardBg: 'bg-black/90',
+      text: 'text-indigo-100',
+      subText: 'text-indigo-400/80',
       accent: 'text-indigo-400',
-      accentHover: 'hover:text-indigo-300',
-      border: 'border-slate-800',
-      highlight: 'text-indigo-500'
+      accentHover: 'hover:text-cyan-400',
+      border: 'border-indigo-900/50',
+      highlight: 'text-cyan-500'
     }
   },
   {
     id: 'vapor',
     name: 'Vapor Wave',
-    promptModifier: 'Prioritize websites with a Vaporwave, 80s/90s nostalgic, pastel, pink/cyan, or retro-anime aesthetic.',
+    promptModifier: 'Prioritize websites with a Vaporwave, 80s/90s nostalgic, pastel, pink/cyan, or retro-anime aesthetic. Think astatic palm trees and marble statues.',
     styles: {
-      bg: 'bg-[#1a0b2e]', // Deep purple
-      cardBg: 'bg-[#2d1b4e]',
-      text: 'text-cyan-200',
-      subText: 'text-fuchsia-300',
+      bg: 'bg-[#1a0b2e]',
+      cardBg: 'bg-[#2d1b4e]/80',
+      text: 'text-cyan-50',
+      subText: 'text-fuchsia-300/70',
       accent: 'text-pink-400',
-      accentHover: 'hover:text-pink-300',
-      border: 'border-fuchsia-800',
+      accentHover: 'hover:text-cyan-300',
+      border: 'border-fuchsia-800/40',
       highlight: 'text-cyan-400'
     }
   },
   {
     id: 'solar',
     name: 'Solar Punk',
-    promptModifier: 'Prioritize websites with a light, nature-inspired, organic, clean, warm, or Solarpunk aesthetic.',
+    promptModifier: 'Prioritize websites with a light, nature-inspired, organic, clean, warm, or Solarpunk aesthetic. Overgrown tech and sustainable futures.',
     styles: {
-      bg: 'bg-[#f0f9f0]', // Very light green
+      bg: 'bg-[#f0f9f0]',
       cardBg: 'bg-white',
       text: 'text-stone-800',
       subText: 'text-stone-500',
-      accent: 'text-emerald-600',
+      accent: 'text-emerald-700',
       accentHover: 'hover:text-emerald-500',
       border: 'border-emerald-200',
       highlight: 'text-orange-500'
@@ -210,16 +210,16 @@ export const AESTHETICS: Aesthetic[] = [
   {
     id: 'brutal',
     name: 'Brutalism',
-    promptModifier: 'Prioritize websites with a Web Brutalist, stark, monochrome, high-contrast, raw HTML, or minimal aesthetic.',
+    promptModifier: 'Prioritize websites with a Web Brutalist, stark, monochrome, high-contrast, raw HTML, or minimal aesthetic. Raw, unpolished, and functional.',
     styles: {
-      bg: 'bg-neutral-900',
-      cardBg: 'bg-neutral-800',
-      text: 'text-neutral-50',
-      subText: 'text-neutral-400',
-      accent: 'text-lime-500',
-      accentHover: 'hover:text-lime-400',
-      border: 'border-neutral-700',
-      highlight: 'text-lime-500'
+      bg: 'bg-neutral-100',
+      cardBg: 'bg-white',
+      text: 'text-black',
+      subText: 'text-neutral-600',
+      accent: 'text-black',
+      accentHover: 'hover:bg-black hover:text-white',
+      border: 'border-black border-2',
+      highlight: 'text-lime-600'
     }
   },
   {
@@ -262,14 +262,17 @@ export const TIME_ERAS: TimeEra[] = [
 ];
 
 export const INITIAL_SITES: Site[] = [
-   {
+  {
     id: 'pointerpointer',
     title: 'Pointer Pointer',
     url: 'https://pointerpointer.com/',
     description: 'An interactive experience where you point your cursor anywhere on the screen, and the site finds a photo of someone pointing exactly at it.',
     category: Category.USELESS_WEB,
     tags: ['interactive', 'humor', 'classic'],
-    yearEstablished: '2012'
+    yearEstablished: '2012',
+    designVibe: 'Literal Interactive',
+    technicalStack: ['JavaScript', 'Image Mapping'],
+    vibeScore: 82
   },
   {
     id: 'spacehey',
@@ -278,43 +281,10 @@ export const INITIAL_SITES: Site[] = [
     description: 'A space for friends. A retro social network bringing back the customizability and privacy of early 2000s social media.',
     category: Category.SOCIAL,
     tags: ['retro', 'social', 'customizable'],
-    yearEstablished: '2020'
-  },
-  {
-    id: 'quickdraw',
-    title: 'Quick, Draw!',
-    url: 'https://quickdraw.withgoogle.com/',
-    description: 'Can a neural network learn to recognize your doodling? Help teach it by adding your drawings to the world’s largest doodling data set.',
-    category: Category.AI,
-    tags: ['ai', 'interactive', 'google'],
-    yearEstablished: '2016'
-  },
-  {
-    id: 'neal-fun',
-    title: 'Neal.fun',
-    url: 'https://neal.fun/',
-    description: 'A collection of absurd and delightful web experiments, from spending Bill Gates\' money to drawing logos from memory.',
-    category: Category.INTERACTIVE_ART,
-    tags: ['fun', 'minigames', 'creative'],
-    yearEstablished: '2019'
-  },
-  {
-    id: 'camerons-world',
-    title: 'Cameron\'s World',
-    url: 'https://www.cameronsworld.net/',
-    description: 'A love letter to the Internet of old. A collage of Geocities-era graphics and text that scrolls forever.',
-    category: Category.RETRO,
-    tags: ['art', 'history', 'geocities'],
-    yearEstablished: '2015'
-  },
-  {
-    id: 'radio-garden',
-    title: 'Radio Garden',
-    url: 'https://radio.garden/',
-    description: 'Rotate the globe and listen to live radio stations from every corner of the planet.',
-    category: Category.MUSIC,
-    tags: ['music', 'global', 'interactive'],
-    yearEstablished: '2016'
+    yearEstablished: '2020',
+    designVibe: 'MySpace Revival',
+    technicalStack: ['PHP', 'Legacy CSS'],
+    vibeScore: 94
   },
   {
     id: 'windows93',
@@ -323,16 +293,22 @@ export const INITIAL_SITES: Site[] = [
     description: 'A surreal, web-based operating system tribute to the 90s, packed with bizarre programs, games, and art.',
     category: Category.RETRO,
     tags: ['os', 'satire', 'nostalgia'],
-    yearEstablished: '2014'
+    yearEstablished: '2014',
+    designVibe: 'Glitch Art OS',
+    technicalStack: ['HTML5', 'Custom Audio Console'],
+    vibeScore: 98
   },
   {
-    id: 'sadgrl-online',
-    title: 'Sadgrl.online',
-    url: 'https://sadgrl.online/',
-    description: 'A directory and resource site focused on the revival of the personal web and old-school web design.',
-    category: Category.BLOGS,
-    tags: ['directory', 'web-revival', 'design'],
-    yearEstablished: '2020'
+    id: 'radio-garden',
+    title: 'Radio Garden',
+    url: 'https://radio.garden/',
+    description: 'Rotate the globe and listen to live radio stations from every corner of the planet.',
+    category: Category.MUSIC,
+    tags: ['music', 'global', 'interactive'],
+    yearEstablished: '2016',
+    designVibe: 'Global Cartographic',
+    technicalStack: ['WebGL', 'WebAudio'],
+    vibeScore: 91
   }
 ];
 

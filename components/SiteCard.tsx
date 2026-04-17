@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Site, Aesthetic } from '../types';
 import { CATEGORY_COLORS } from '../constants';
-import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2 } from 'lucide-react';
+import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette } from 'lucide-react';
 
 interface SiteCardProps {
   site: Site;
@@ -50,7 +50,14 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   return (
     <div className="relative w-full max-w-2xl mx-auto group perspective-1000">
       {/* Background Glow Effect - Dynamic based on Aesthetic */}
-      <div className={`absolute -inset-1 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 ${aesthetic.id === 'cyber' ? 'bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600' : aesthetic.id === 'vapor' ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-yellow-400' : aesthetic.id === 'solar' ? 'bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400' : 'bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600'}`}></div>
+      <div className={`absolute -inset-1 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 ${
+        aesthetic.id === 'cyber' ? 'bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600' : 
+        aesthetic.id === 'vapor' ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-yellow-400' : 
+        aesthetic.id === 'solar' ? 'bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400' : 
+        aesthetic.id === 'matrix' ? 'bg-gradient-to-r from-green-900 via-green-400 to-green-900' :
+        aesthetic.id === 'academic' ? 'bg-gradient-to-r from-amber-700 via-amber-200 to-amber-900' :
+        'bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600'
+      }`}></div>
       
       <div className={`relative ${aesthetic.styles.cardBg} border ${aesthetic.styles.border} rounded-xl p-8 shadow-2xl overflow-hidden min-h-[400px] flex flex-col justify-between transform transition-transform duration-500 hover:scale-[1.01]`}>
         
@@ -91,6 +98,49 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
           <p className={`text-lg md:text-xl ${aesthetic.styles.subText} leading-relaxed mb-8`}>
             {site.description}
           </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {site.designVibe && (
+              <div className={`flex items-start gap-3 p-3 rounded-lg bg-black/20 border border-white/5`}>
+                 <Palette size={18} className={aesthetic.styles.accent} />
+                 <div>
+                   <div className={`text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-0.5`}>Design DNA</div>
+                   <div className={`text-sm font-medium ${aesthetic.styles.text}`}>{site.designVibe}</div>
+                 </div>
+              </div>
+            )}
+            
+            {site.vibeScore !== undefined && (
+              <div className={`flex items-start gap-3 p-3 rounded-lg bg-black/20 border border-white/5`}>
+                 <Gauge size={18} className={aesthetic.styles.highlight} />
+                 <div className="flex-1">
+                   <div className={`text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-0.5`}>Vibe Potency</div>
+                   <div className="flex items-center gap-2">
+                     <div className={`text-sm font-bold ${aesthetic.styles.text}`}>{site.vibeScore}%</div>
+                     <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+                       <div 
+                         className={`h-full ${aesthetic.styles.highlight === 'text-cyan-400' || aesthetic.styles.highlight === 'text-cyan-500' ? 'bg-cyan-500' : 'bg-indigo-500'} transition-all duration-1000 shadow-[0_0_8px_rgba(255,255,255,0.3)]`} 
+                         style={{ width: `${site.vibeScore}%` }}
+                       />
+                     </div>
+                   </div>
+                 </div>
+              </div>
+            )}
+          </div>
+
+          {site.technicalStack && site.technicalStack.length > 0 && (
+             <div className="mb-6 flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
+               <Cpu size={14} className={aesthetic.styles.subText} />
+               <div className="flex gap-2">
+                 {site.technicalStack.map(tech => (
+                   <span key={tech} className={`text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 border ${aesthetic.styles.border} ${aesthetic.styles.subText}`}>
+                     {tech}
+                   </span>
+                 ))}
+               </div>
+             </div>
+          )}
 
           {site.curatorNote && (
             <div className={`bg-black/20 border-l-4 ${aesthetic.id === 'brutal' ? 'border-lime-500' : 'border-indigo-500'} p-4 mb-6 rounded-r-lg italic ${aesthetic.styles.subText} text-sm`}>
