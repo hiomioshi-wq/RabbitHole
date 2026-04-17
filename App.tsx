@@ -1,13 +1,24 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices } from 'lucide-react';
+import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle } from 'lucide-react';
 import { Site, Category, FetchStatus, CuratorPersona, AIModel, Aesthetic, TimeEra } from './types';
 import { INITIAL_SITES, CATEGORY_COLORS, CURATOR_PERSONAS, AI_MODELS, AESTHETICS, TIME_ERAS } from './constants';
 import { fetchRecommendations, searchSites, findSimilarSites, getSiteAnalysis } from './services/geminiService';
 import { SiteCard } from './components/SiteCard';
 
+// --- Global Storage Helper for Sound ---
+const isSoundEnabled = () => {
+    try {
+        const stored = window.localStorage.getItem('rabbithole_sound');
+        return stored ? JSON.parse(stored) : true;
+    } catch {
+        return true;
+    }
+};
+
 // --- Sound Engine ---
 const playSound = (type: 'static' | 'blip' | 'success') => {
   try {
+    if (!isSoundEnabled()) return;
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
@@ -155,6 +166,7 @@ const App: React.FC = () => {
   const [activeAesthetic, setActiveAesthetic] = useState<Aesthetic>(AESTHETICS[0]);
   const [activeEra, setActiveEra] = useState<TimeEra>(TIME_ERAS[0]);
   
+  const [searchResults, setSearchResults] = useState<Site[] | null>(null);
   const [showConfig, setShowConfig] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -164,6 +176,11 @@ const App: React.FC = () => {
   const [siteQueue, setSiteQueue] = useState<Site[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [submittedSites, setSubmittedSites] = useLocalStorage<any[]>('rabbithole_submissions', []);
+  const [soundEnabled, setSoundEnabled] = useLocalStorage('rabbithole_sound', true);
+  const [autoStumble, setAutoStumble] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const addToHistory = (site: Site) => {
@@ -171,6 +188,16 @@ const App: React.FC = () => {
       if (prev.length > 0 && prev[0].id === site.id) return prev;
       return [site, ...prev].slice(0, 50);
     });
+  };
+
+  const handleBack = () => {
+      if (history.length > 1) {
+          // Remove the current one from history to "go back"
+          const previousSite = history[1];
+          setHistory(prev => prev.slice(1));
+          setCurrentSite(previousSite);
+          playSound('blip');
+      }
   };
 
   const toggleFavorite = (site: Site) => {
@@ -227,9 +254,10 @@ const App: React.FC = () => {
     setIsSearchActive(true);
     setCurrentAnalysis(null);
     setSiteQueue([]); 
+    setSearchResults(null);
 
     try {
-      let results = await searchSites(q, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 25);
+      let results = await searchSites(q, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 15); // Adjust to 15 for grids
       
       // FALLBACK
       if (results.length === 0) {
@@ -240,24 +268,34 @@ const App: React.FC = () => {
              s.tags.some(t => t.toLowerCase().includes(lowerQ)) ||
              s.category.toLowerCase().includes(lowerQ)
           );
-          results = localResults.sort(() => 0.5 - Math.random()).slice(0, 3);
+          results = localResults.sort(() => 0.5 - Math.random()).slice(0, 12);
       }
 
       if (results.length > 0) {
         playSound('success');
-        const first = results[0];
-        const rest = results.slice(1);
-        setCurrentSite(first);
-        addToHistory(first);
-        setSiteQueue(rest);
+        setSearchResults(results);
         setStatus('success');
       } else {
-        setStatus('error');
+        setStatus('idle');
+        setSearchQuery("");
       }
     } catch (err) {
       console.error(err);
       setStatus('error');
     }
+  };
+
+  const selectSearchResult = (site: Site) => {
+    playSound('success');
+    setCurrentSite(site);
+    addToHistory(site);
+    
+    if (searchResults) {
+        const rest = searchResults.filter(s => s.id !== site.id);
+        setSiteQueue(rest);
+    }
+    
+    setSearchResults(null);
   };
 
   const handleFindSimilar = async (site: Site) => {
@@ -356,6 +394,7 @@ const App: React.FC = () => {
     setStatus('loading');
     setShowWelcome(false);
     setCurrentAnalysis(null);
+    setSearchResults(null);
     
     if (isSearchActive && siteQueue.length > 0) {
         const nextSite = siteQueue[0];
@@ -410,7 +449,7 @@ const App: React.FC = () => {
       console.error(e);
       fallbackStumble();
     }
-  }, [selectedCategory, selectedTag, siteQueue, fallbackStumble, fetchMoreSites, addToHistory, isSearchActive, searchQuery, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra]); 
+  }, [selectedCategory, selectedTag, siteQueue, fallbackStumble, fetchMoreSites, addToHistory, isSearchActive, searchQuery, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra]); // handleSearch intentionally omitted to prevent circular dependency unless memoized properly, but we can safely call it using the current state values inside the callback.
 
   useEffect(() => {
     setSiteQueue([]);
@@ -442,23 +481,67 @@ const App: React.FC = () => {
     </div>
   );
 
+  // Auto Stumble Logic
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (autoStumble && status !== 'loading' && currentSite) {
+        timer = setTimeout(() => {
+            handleStumble();
+        }, 15000); // 15 seconds auto-stumble
+    }
+    return () => clearTimeout(timer);
+  }, [autoStumble, status, currentSite, handleStumble]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !isSidebarOpen && document.activeElement !== searchInputRef.current) {
+      // Don't trigger hotkeys if user is tying in an input
+      const activeEl = document.activeElement;
+      const isInput = activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA';
+      
+      if (e.key === '?' && !isInput) {
+          e.preventDefault();
+          setIsHelpModalOpen(prev => !prev);
+          return;
+      }
+
+      if (e.key === '/' && !isSidebarOpen && !isInput) {
         e.preventDefault();
         searchInputRef.current?.focus();
         return;
       }
-      if ((e.code === 'Space' || e.code === 'ArrowRight') && !isSidebarOpen && document.activeElement !== searchInputRef.current) {
+
+      if ((e.code === 'Space' || e.code === 'ArrowRight') && !isSidebarOpen && !isInput) {
          e.preventDefault();
          if (status !== 'loading') {
             handleStumble();
          }
       }
+
+      if ((e.code === 'ArrowLeft') && !isSidebarOpen && !isInput) {
+         e.preventDefault();
+         handleBack();
+      }
+
+      if (e.key.toLowerCase() === 'm' && !isInput) {
+          e.preventDefault();
+          setSoundEnabled(prev => !prev);
+      }
+
+      if (e.key.toLowerCase() === 'f' && !isInput && currentSite) {
+          e.preventDefault();
+          toggleFavorite(currentSite);
+          playSound('blip');
+      }
+
+      if (e.key.toLowerCase() === 'a' && !isInput && currentSite && !isAnalyzing) {
+          e.preventDefault();
+          const pSite = currentSite; 
+          // Needs manual event fire, handleAnalyzeSite relies on event passing. We can just call it straight or ignore 'a' if handleAnalyze is hard.
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleStumble, isSidebarOpen, status]);
+  }, [handleStumble, handleBack, isSidebarOpen, status, currentSite, isAnalyzing, setSoundEnabled]);
 
   useEffect(() => {
     setSiteQueue([]);
@@ -684,6 +767,22 @@ const App: React.FC = () => {
              </div>
 
             <button 
+                onClick={() => setIsHelpModalOpen(true)}
+                className={`p-2 rounded-lg transition-colors hidden xl:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}
+                title="Keyboard Shortcuts (Hotkeys)"
+            >
+                <HelpCircle size={20} />
+            </button>
+
+            <button 
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`p-2 rounded-lg transition-colors hidden sm:block ${soundEnabled ? `bg-black/20 ${activeAesthetic.styles.text}` : `${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}`}
+                title={soundEnabled ? "Mute Sounds" : "Enable Sounds"}
+            >
+                {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+            </button>
+
+            <button 
                 onClick={() => setRetroMode(!retroMode)}
                 className={`p-2 rounded-lg transition-colors hidden sm:block ${retroMode ? `bg-black/20 ${activeAesthetic.styles.accent}` : `${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}`}
                 title="Toggle CRT Mode"
@@ -694,11 +793,42 @@ const App: React.FC = () => {
             <button 
               onClick={() => setIsSidebarOpen(true)}
               className={`p-2 hover:bg-black/10 rounded-lg transition-colors ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text} relative`}
+              title="History & Favorites"
             >
               <History size={20} />
               {favorites.length > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-pink-500 rounded-full"></span>
               )}
+            </button>
+
+            <button 
+               onClick={() => setIsSubmitModalOpen(true)}
+               className={`hidden md:flex p-2 hover:bg-black/10 rounded-lg transition-colors ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}
+               title="Submit a Link"
+            >
+               <Plus size={20} />
+            </button>
+
+            <button 
+               onClick={() => {
+                   setSelectedTag(null);
+                   setSelectedCategory(Category.ALL);
+                   setSearchQuery('');
+                   setIsSearchActive(false);
+                   handleStumble();
+               }}
+               className={`hidden md:flex p-2 hover:bg-black/10 rounded-lg transition-colors ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text} cursor-help`}
+               title="Feeling Lucky (Pure Random)"
+            >
+               <Dices size={20} />
+            </button>
+
+            <button 
+               onClick={() => setAutoStumble(!autoStumble)}
+               className={`hidden md:flex p-2 hover:bg-black/10 rounded-lg transition-colors ${autoStumble ? `text-green-500 bg-green-500/10` : `${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}`}
+               title={autoStumble ? "Disable Auto-Stumble" : "Enable Auto-Stumble (15s)"}
+            >
+               <Play size={20} className={autoStumble ? "fill-current" : ""} />
             </button>
 
             <button 
@@ -796,6 +926,32 @@ const App: React.FC = () => {
           <div className="w-full max-w-4xl z-10 animate-fade-in min-h-[500px] flex items-center justify-center">
             {status === 'loading' ? (
               <NeuralLoading />
+            ) : searchResults ? (
+              <div className="w-full max-w-6xl mx-auto px-4 mt-8 animate-fade-in relative z-10">
+                 <div className="flex justify-between items-center mb-6">
+                    <h2 className={`text-2xl font-bold ${activeAesthetic.styles.text}`}>Search Results</h2>
+                    <button onClick={() => { setIsSearchActive(false); setSearchQuery(''); setSearchResults(null); handleStumble(); }} className={`hover:opacity-80 ${activeAesthetic.styles.subText} flex items-center gap-2`}><X size={16}/> Clear Search</button>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {searchResults.map(site => (
+                        <div 
+                          key={site.id} 
+                          onClick={() => selectSearchResult(site)}
+                          className={`p-4 rounded-xl cursor-pointer transition-all transform hover:scale-[1.02] border ${activeAesthetic.styles.border} ${activeAesthetic.styles.cardBg} hover:border-current hover:bg-black/30 group relative overflow-hidden`}
+                        >
+                           <div className={`absolute -inset-1 opacity-0 group-hover:opacity-10 blur-xl transition-all ${
+                             activeAesthetic.id === 'cyber' ? 'bg-pink-500' : 'bg-current'
+                           }`}></div>
+                           <h3 className={`text-lg font-bold ${activeAesthetic.styles.text} mb-2 line-clamp-1`}>{site.title}</h3>
+                           <p className={`text-sm ${activeAesthetic.styles.subText} mb-4 line-clamp-2`}>{site.description}</p>
+                           <div className="flex gap-2">
+                             <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${CATEGORY_COLORS[site.category] || 'bg-slate-600'} text-white`}>{site.category}</span>
+                             {site.vibeScore && <span className={`text-[10px] font-mono border ${activeAesthetic.styles.border} px-2 py-0.5 rounded ${activeAesthetic.styles.highlight}`}>{site.vibeScore}% Vibe</span>}
+                           </div>
+                        </div>
+                    ))}
+                 </div>
+              </div>
             ) : currentSite ? (
               <div className="w-full">
                  {isSearchActive && (
@@ -809,6 +965,8 @@ const App: React.FC = () => {
                  <SiteCard 
                     site={currentSite} 
                     aesthetic={activeAesthetic}
+                    persona={activePersona}
+                    era={activeEra}
                     isFavorite={favorites.some(f => f.id === currentSite.id)}
                     onToggleFavorite={(s) => { playSound('blip'); toggleFavorite(s); }}
                     onVisit={() => window.open(currentSite.url, '_blank')}
@@ -845,7 +1003,7 @@ const App: React.FC = () => {
       </main>
 
       {/* Sidebar Drawer */}
-      <div className={`fixed inset-y-0 right-0 z-50 w-80 ${activeAesthetic.styles.bg} border-l ${activeAesthetic.styles.border} transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} shadow-2xl`}>
+      <div className={`fixed inset-y-0 right-0 z-50 w-80 ${activeAesthetic.styles.bg} border-l ${activeAesthetic.styles.border} transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} shadow-2xl flex flex-col`}>
         <div className={`p-4 border-b ${activeAesthetic.styles.border} flex justify-between items-center ${activeAesthetic.styles.cardBg}/50 backdrop-blur`}>
           <h2 className={`font-display font-bold text-lg ${activeAesthetic.styles.text}`}>Your Journey</h2>
           <button onClick={() => setIsSidebarOpen(false)} className={`${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
@@ -853,12 +1011,63 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        <div className="p-4 h-[calc(100%-60px)] overflow-y-auto">
+        <div className="p-4 flex-1 overflow-y-auto">
+          <div className="md:hidden flex flex-col gap-3 mb-8">
+               <button 
+                  onClick={() => {
+                     setIsSidebarOpen(false);
+                     setIsSubmitModalOpen(true);
+                  }}
+                  className={`flex items-center gap-2 p-3 rounded-lg border ${activeAesthetic.styles.border} ${activeAesthetic.styles.cardBg} ${activeAesthetic.styles.text} hover:opacity-80 transition-colors`}
+               >
+                  <Plus size={16} className={activeAesthetic.styles.accent} />
+                  Submit a Link
+               </button>
+               <button 
+                  onClick={() => {
+                     setIsSidebarOpen(false);
+                     setSelectedTag(null);
+                     setSelectedCategory(Category.ALL);
+                     setSearchQuery('');
+                     setIsSearchActive(false);
+                     handleStumble();
+                  }}
+                  className={`flex items-center gap-2 p-3 rounded-lg border ${activeAesthetic.styles.border} ${activeAesthetic.styles.cardBg} ${activeAesthetic.styles.text} hover:opacity-80 transition-colors`}
+               >
+                  <Dices size={16} className={activeAesthetic.styles.accent} />
+                  Feeling Lucky
+               </button>
+               <button 
+                  onClick={() => {
+                     setIsSidebarOpen(false);
+                     setIsHelpModalOpen(true);
+                  }}
+                  className={`xl:hidden flex items-center gap-2 p-3 rounded-lg border ${activeAesthetic.styles.border} ${activeAesthetic.styles.cardBg} ${activeAesthetic.styles.text} hover:opacity-80 transition-colors`}
+               >
+                  <HelpCircle size={16} className={activeAesthetic.styles.accent} />
+                  Help / Shortcuts
+               </button>
+               <button 
+                  onClick={() => {
+                     setSoundEnabled(!soundEnabled);
+                  }}
+                  className={`sm:hidden flex items-center gap-2 p-3 rounded-lg border ${activeAesthetic.styles.border} ${activeAesthetic.styles.cardBg} ${activeAesthetic.styles.text} hover:opacity-80 transition-colors`}
+               >
+                  {soundEnabled ? <Volume2 size={16} className={activeAesthetic.styles.accent} /> : <VolumeX size={16} className={activeAesthetic.styles.accent} />}
+                  {soundEnabled ? 'Mute Sounds' : 'Enable Sounds'}
+               </button>
+          </div>
+
           {favorites.length > 0 && (
              <div className="mb-8">
-               <h3 className={`text-xs font-bold ${activeAesthetic.styles.subText} uppercase tracking-wider mb-3 flex items-center gap-2`}>
-                 <Heart size={12} className="text-pink-500" /> Favorites
-               </h3>
+               <div className="flex justify-between items-center mb-3">
+                 <h3 className={`text-xs font-bold ${activeAesthetic.styles.subText} uppercase tracking-wider flex items-center gap-2`}>
+                   <Heart size={12} className="text-pink-500" /> Favorites
+                 </h3>
+                 <button onClick={() => setFavorites([])} className={`text-xs ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear ALL Favorites">
+                    <Trash2 size={12} /> Clear
+                 </button>
+               </div>
                <div className="space-y-3">
                  {favorites.map(site => (
                    <div key={site.id} className={`${activeAesthetic.styles.cardBg} rounded-lg p-3 border ${activeAesthetic.styles.border} hover:border-current transition-colors group cursor-pointer`} onClick={() => { setCurrentSite(site); setIsSidebarOpen(false); setShowWelcome(false); }}>
@@ -876,9 +1085,16 @@ const App: React.FC = () => {
           )}
 
           <div>
-             <h3 className={`text-xs font-bold ${activeAesthetic.styles.subText} uppercase tracking-wider mb-3 flex items-center gap-2`}>
-               <History size={12} /> Recent Stumbles
-             </h3>
+             <div className="flex justify-between items-center mb-3">
+               <h3 className={`text-xs font-bold ${activeAesthetic.styles.subText} uppercase tracking-wider flex items-center gap-2`}>
+                 <History size={12} /> Recent Stumbles
+               </h3>
+               {history.length > 0 && (
+                 <button onClick={() => setHistory([])} className={`text-xs ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear History">
+                    <Trash2 size={12} /> Clear
+                 </button>
+               )}
+             </div>
              <div className="space-y-3">
                {history.map((site, idx) => (
                  <div key={`${site.id}-${idx}`} className={`group ${activeAesthetic.styles.cardBg} rounded-lg p-3 border border-transparent hover:${activeAesthetic.styles.border} transition-colors cursor-pointer`} onClick={() => { setCurrentSite(site); setIsSidebarOpen(false); setShowWelcome(false); }}>
@@ -905,6 +1121,131 @@ const App: React.FC = () => {
       {/* Overlay for Sidebar */}
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={() => setIsSidebarOpen(false)}></div>
+      )}
+
+      {/* Submit Modal */}
+      {isSubmitModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className={`w-full max-w-md ${activeAesthetic.styles.cardBg} border ${activeAesthetic.styles.border} rounded-xl p-6 shadow-2xl relative animate-fade-in`}>
+              <button onClick={() => setIsSubmitModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+                 <X size={20} />
+              </button>
+              <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} mb-2`}>Submit a Node</h2>
+              <p className={`text-sm ${activeAesthetic.styles.subText} mb-6`}>Help expand the weird web. Your submission will be stored locally.</p>
+              
+              <form onSubmit={(e) => {
+                 e.preventDefault();
+                 const formData = new FormData(e.currentTarget);
+                 const newSite = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    title: formData.get('title') as string,
+                    url: formData.get('url') as string,
+                    description: formData.get('description') as string,
+                    category: formData.get('category') as Category,
+                    tags: (formData.get('tags') as string).split(',').map(t => t.trim()).filter(Boolean),
+                    submittedAt: new Date().toISOString()
+                 };
+                 setSubmittedSites(prev => [newSite, ...prev]);
+                 setIsSubmitModalOpen(false);
+                 playSound('success');
+              }} className="space-y-4">
+                 
+                 <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Title</label>
+                    <input name="title" required className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} placeholder="Site Title" />
+                 </div>
+                 
+                 <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>URL</label>
+                    <input name="url" type="url" required className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} placeholder="https://..." />
+                 </div>
+
+                 <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Description</label>
+                    <textarea name="description" required rows={3} className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} placeholder="What makes it weird?" />
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Category</label>
+                        <select name="category" required className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`}>
+                            {Object.values(Category).filter(c => c !== Category.ALL).map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Tags (comma-separated)</label>
+                        <input name="tags" placeholder="weird, web1.0, art" className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} />
+                    </div>
+                 </div>
+
+                 <button type="submit" className={`w-full mt-4 ${activeAesthetic.styles.accent.replace('text-', 'bg-')} text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity`}>
+                    Archive Site
+                 </button>
+              </form>
+
+              {submittedSites.length > 0 && (
+                 <div className="mt-8 pt-6 border-t border-white/10">
+                    <h3 className={`text-xs font-bold ${activeAesthetic.styles.subText} uppercase tracking-wider mb-3`}>Your Submissions</h3>
+                    <div className="space-y-2 max-h-32 overflow-y-auto pr-2 no-scrollbar">
+                       {submittedSites.map(s => (
+                          <div key={s.id} className="text-xs flex justify-between items-center p-2 rounded bg-white/5">
+                             <span className={`font-medium ${activeAesthetic.styles.text} truncate max-w-[200px]`}>{s.title}</span>
+                             <span className={activeAesthetic.styles.subText}>{new Date(s.submittedAt).toLocaleDateString()}</span>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              )}
+           </div>
+        </div>
+      )}
+
+      {/* Help Modal */}
+      {isHelpModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsHelpModalOpen(false)}>
+           <div className={`w-full max-w-sm ${activeAesthetic.styles.cardBg} border ${activeAesthetic.styles.border} rounded-xl p-6 shadow-2xl relative animate-fade-in`} onClick={e => e.stopPropagation()}>
+              <button onClick={() => setIsHelpModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+                 <X size={20} />
+              </button>
+              <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} mb-4 flex items-center gap-2`}>
+                <Ghost size={24} className={activeAesthetic.styles.accent} />
+                Terminal Manual
+              </h2>
+              
+              <div className="space-y-4">
+                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                    <span>Stumble Forward</span>
+                    <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>Space</kbd>
+                 </div>
+                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                    <span>Stumble Forward</span>
+                    <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>→</kbd>
+                 </div>
+                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                    <span>Go Back</span>
+                    <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>←</kbd>
+                 </div>
+                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                    <span>Focus Search</span>
+                    <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>/</kbd>
+                 </div>
+                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                    <span>Toggle Sound</span>
+                    <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>M</kbd>
+                 </div>
+                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                    <span>Favorite Site</span>
+                    <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>F</kbd>
+                 </div>
+                 <div className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                    <span>Toggle Help Info</span>
+                    <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>?</kbd>
+                 </div>
+              </div>
+           </div>
+        </div>
       )}
 
     </div>

@@ -136,11 +136,12 @@ export const fetchRecommendations = async (
   // Time Travel Logic
   const timeConstraint = timeEra.id === 'all' 
     ? "" 
-    : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era.`;
+    : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era. YOU MUST FOLLOW THIS ERA CONSTRAINT.`;
 
   const prompt = `
     ${persona.promptModifier}
     ${aesthetic.promptModifier}
+    STRICT MANDATE: Return sites that explicitly match the requested mood or timeline.
     ${timeConstraint}
     
     Find ${count} REAL, OBSCURE websites in ${categoryPrompt}.
@@ -183,11 +184,12 @@ export const searchSites = async (
 
   const timeConstraint = timeEra.id === 'all' 
     ? "" 
-    : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era.`;
+    : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era. YOU MUST FOLLOW THIS ERA CONSTRAINT.`;
 
   const prompt = `
     ${persona.promptModifier}
     ${aesthetic.promptModifier}
+    STRICT MANDATE: Return sites that explicitly match the requested mood or timeline.
     ${timeConstraint}
     
     Find ${count} REAL, UNIQUE websites for: "${query}".

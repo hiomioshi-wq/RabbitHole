@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Site, Aesthetic } from '../types';
+import { Site, Aesthetic, CuratorPersona, TimeEra } from '../types';
 import { CATEGORY_COLORS } from '../constants';
-import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette } from 'lucide-react';
+import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck } from 'lucide-react';
 
 interface SiteCardProps {
   site: Site;
   aesthetic: Aesthetic;
+  persona: CuratorPersona;
+  era: TimeEra;
   isFavorite: boolean;
   onToggleFavorite: (site: Site) => void;
   onVisit: () => void;
@@ -20,6 +22,8 @@ interface SiteCardProps {
 export const SiteCard: React.FC<SiteCardProps> = React.memo(({ 
   site, 
   aesthetic,
+  persona,
+  era,
   isFavorite, 
   onToggleFavorite, 
   onVisit,
@@ -31,13 +35,23 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   isAnalyzing
 }) => {
   const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(`${site.title} - ${site.url} (via RabbitHole)`);
+    const shareText = `🕳️ Down the RabbitHole 🕳️\n\nI discovered: ${site.title}\n"${site.description}"\n\n🎨 Vibe: ${aesthetic.name}\n🕰️ Era: ${era.name}\n🤖 Curator: ${persona.name}\n\nExplore it here: ${site.url}`;
+    navigator.clipboard.writeText(shareText);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleCopyUrl = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(site.url);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
   };
 
   const handleAnalyzeClick = () => {
@@ -59,7 +73,7 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
         'bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600'
       }`}></div>
       
-      <div className={`relative ${aesthetic.styles.cardBg} border ${aesthetic.styles.border} rounded-xl p-8 shadow-2xl overflow-hidden min-h-[400px] flex flex-col justify-between transform transition-transform duration-500 hover:scale-[1.01]`}>
+      <div className={`relative ${aesthetic.styles.cardBg} border ${aesthetic.styles.border} rounded-xl p-8 shadow-2xl overflow-hidden min-h-[400px] flex flex-col justify-between transform transition-all duration-700 ease-out hover:scale-[1.02] hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-float`}>
         
         {/* Background Pattern */}
         <div className={`absolute top-0 right-0 p-12 opacity-5 pointer-events-none ${aesthetic.styles.text}`}>
@@ -74,10 +88,10 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
             <div className="flex gap-2">
               <button
                 onClick={handleShare}
-                className={`p-2 rounded-full transition-all ${aesthetic.styles.subText} hover:${aesthetic.styles.text} hover:bg-black/10`}
-                title="Copy link"
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-xs font-bold ${copied ? 'bg-green-500/20 text-green-400 border border-green-500/50' : `bg-black/20 ${aesthetic.styles.subText} hover:${aesthetic.styles.text} hover:bg-black/40 border border-transparent hover:border-current`}`}
+                title="Share Discovery Summary"
               >
-                {copied ? <Check size={20} className="text-green-400" /> : <Share2 size={20} />}
+                {copied ? <><Check size={14} /> Copied Summary!</> : <><Share2 size={14} /> Share</>}
               </button>
               <button 
                 onClick={(e) => {
@@ -86,7 +100,7 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
                 }}
                 className={`p-2 rounded-full transition-all ${isFavorite ? 'text-red-500 bg-red-500/10' : `${aesthetic.styles.subText} hover:${aesthetic.styles.text} hover:bg-black/10`}`}
               >
-                <Heart className={isFavorite ? "fill-current" : ""} size={24} />
+                <Heart className={isFavorite ? "fill-current" : ""} size={20} />
               </button>
             </div>
           </div>
@@ -166,6 +180,23 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
               </div>
           )}
 
+          {/* Iframe Quick View Extension */}
+          {showPreview && (
+              <div className={`w-full h-64 md:h-80 mb-6 rounded-lg overflow-hidden border ${aesthetic.styles.border} animate-fade-in relative bg-black/50 group/iframe`}>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center opacity-50">
+                    <Loader2 size={32} className={`animate-spin ${aesthetic.styles.accent} mb-4`} />
+                    <p className={`text-sm ${aesthetic.styles.subText}`}>Establishing neural link...</p>
+                 </div>
+                 <iframe 
+                    src={site.url} 
+                    className="w-full h-full relative z-10 bg-white" 
+                    sandbox="allow-scripts allow-same-origin"
+                    title={`Preview of ${site.title}`}
+                 />
+                 <div className="absolute inset-0 z-20 pointer-events-none border-b-2 border-transparent group-hover/iframe:border-cyan-400 transition-colors"></div>
+              </div>
+          )}
+
           <div className="flex flex-wrap gap-2 mb-8">
             {site.tags.map(tag => (
               <button 
@@ -194,29 +225,42 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
           </button>
           
           <div className="flex gap-2">
+            <button
+               onClick={() => setShowPreview(!showPreview)}
+               className={`flex-1 flex items-center justify-center gap-2 ${showPreview ? aesthetic.styles.highlight + ' bg-black/40' : aesthetic.styles.subText + ' bg-black/20 hover:bg-black/40 hover:' + aesthetic.styles.text} font-medium py-2 px-4 rounded-lg transition-colors text-sm`}
+            >
+               {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
+               {showPreview ? 'Close View' : 'Quick View'}
+            </button>
             {onFindSimilar && (
                 <button
                 onClick={() => onFindSimilar(site)}
                 className={`flex-1 flex items-center justify-center gap-2 ${aesthetic.styles.subText} font-medium py-2 px-4 rounded-lg bg-black/20 hover:bg-black/40 hover:${aesthetic.styles.text} transition-colors text-sm`}
                 >
                 <Sparkles size={16} />
-                Find Similar
+                Similar
                 </button>
             )}
             
             {onAnalyze && !showAnalysis && (
                 <button
                     onClick={handleAnalyzeClick}
-                    className={`flex-1 flex items-center justify-center gap-2 ${aesthetic.styles.accent} font-medium py-2 px-4 rounded-lg bg-black/20 hover:bg-black/40 transition-colors text-sm`}
+                    className={`flex-1 flex items-center justify-center gap-2 ${aesthetic.styles.accent} font-medium py-2 px-4 rounded-lg bg-black/20 hover:bg-black/40 transition-colors text-sm cursor-help`}
+                    title="Let the AI curator perform a deep neural analysis of this site's purpose and design."
                 >
                     <BrainCircuit size={16} />
-                    Deep Analysis
+                    Analyze
                 </button>
             )}
           </div>
 
           <div className={`text-center mt-3 text-xs ${aesthetic.styles.subText} flex justify-center items-center gap-4`}>
-            <span>Opens in a new tab • {new URL(site.url).hostname}</span>
+            <span className="flex items-center gap-1">
+                Opens in a new tab • {new URL(site.url).hostname} 
+                <button onClick={handleCopyUrl} className="ml-1 p-1 hover:text-white transition-colors" title="Copy URL">
+                    {copiedUrl ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
+                </button>
+            </span>
             <span className="hidden sm:inline-block opacity-50">• Press Space / ⮕ to Stumble</span>
           </div>
         </div>
