@@ -772,6 +772,25 @@ const App: React.FC = () => {
                              </div>
                          </div>
 
+                         {/* Thinking Config */}
+                         {activeModel.supportsThinking && (
+                             <div className={`mb-6`}>
+                                 <div className="flex justify-between items-center mb-2">
+                                     <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-widest`}>Thinking Budget</div>
+                                     <div className={`text-[10px] font-mono ${activeAesthetic.styles.accent}`}>{thinkingBudget}</div>
+                                 </div>
+                                 <input 
+                                    type="range" 
+                                    min="0" 
+                                    max={activeModel.maxThinkingBudget} 
+                                    step="1024"
+                                    value={thinkingBudget}
+                                    onChange={(e) => setThinkingBudget(Number(e.target.value))}
+                                    className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-current"
+                                 />
+                             </div>
+                         )}
+
                          {/* Advanced Toggles */}
                          <div className="grid grid-cols-2 gap-2 mt-6">
                             <button onClick={() => setSoundEnabled(!soundEnabled)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${soundEnabled ? activeAesthetic.styles.text : activeAesthetic.styles.subText}`}>
