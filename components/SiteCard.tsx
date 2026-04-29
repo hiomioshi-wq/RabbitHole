@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Site, Aesthetic, CuratorPersona, TimeEra } from '../types';
 import { CATEGORY_COLORS } from '../constants';
-import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck, Tag, Terminal, Play, Square, Volume2 } from 'lucide-react';
+import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck, Tag, Terminal, Play, Square, Volume2, NotebookPen, Save, X as CloseIcon, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateSpeech } from '../services/geminiService';
 
@@ -12,6 +12,7 @@ interface SiteCardProps {
   era: TimeEra;
   isFavorite: boolean;
   onToggleFavorite: (site: Site) => void;
+  onUpdateSite?: (site: Site) => void; // NEW: Update site data (like notes)
   onVisit: () => void;
   onTagClick: (tag: string) => void;
   onFindSimilar?: (site: Site) => void;
@@ -36,6 +37,7 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   era,
   isFavorite, 
   onToggleFavorite, 
+  onUpdateSite,
   onVisit,
   onTagClick,
   onFindSimilar,
@@ -44,13 +46,25 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   analysisText,
   isAnalyzing
 }) => {
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [noteText, setNoteText] = useState(site.fieldNote || '');
   const [copied, setCopied] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
 
-  // Audio state
+  useEffect(() => {
+    setNoteText(site.fieldNote || '');
+  }, [site.fieldNote]);
+
+  const handleSaveNote = () => {
+    if (onUpdateSite) {
+      onUpdateSite({ ...site, fieldNote: noteText });
+    }
+    setIsEditingNote(false);
+  };
+
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [isPlayingNote, setIsPlayingNote] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -490,6 +504,52 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
               </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Field Notes Section */}
+        {(isFavorite || site.fieldNote) && (
+          <motion.div 
+            variants={itemVariants}
+            className={`mb-8 ${isBrutal ? 'border-2' : 'border rounded-2xl'} ${aesthetic.styles.border} bg-white/5 p-4 sm:p-6 transition-all relative overflow-hidden group/notes`}
+          >
+             <div className="flex items-center justify-between mb-4">
+                <div className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-[0.2em] ${aesthetic.styles.subText}`}>
+                   <NotebookPen size={14} className={aesthetic.styles.accent} /> Field Notes
+                </div>
+                {!isEditingNote ? (
+                  <button onClick={() => setIsEditingNote(true)} className={`text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.accent} hover:underline flex items-center gap-1`}>
+                    <Pencil size={12} /> {site.fieldNote ? 'Edit Note' : 'Add Note'}
+                  </button>
+                ) : (
+                  <div className="flex gap-3">
+                    <button onClick={handleSaveNote} className="text-[10px] uppercase font-bold tracking-widest text-emerald-500 hover:underline flex items-center gap-1">
+                       <Save size={12} /> Save
+                    </button>
+                    <button onClick={() => { setIsEditingNote(false); setNoteText(site.fieldNote || ''); }} className="text-[10px] uppercase font-bold tracking-widest text-red-500 hover:underline flex items-center gap-1">
+                       <CloseIcon size={12} /> Cancel
+                    </button>
+                  </div>
+                )}
+             </div>
+             
+             {isEditingNote ? (
+                <textarea 
+                  autoFocus
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  className={`w-full bg-black/40 border ${aesthetic.styles.border} rounded-lg p-3 text-sm ${aesthetic.styles.text} font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500/30 transition-all min-h-[100px]`}
+                  placeholder="Record your observations here..."
+                />
+             ) : site.fieldNote ? (
+                <div className={`text-sm ${aesthetic.styles.text} font-mono italic opacity-90 leading-relaxed`}>
+                   "{site.fieldNote}"
+                </div>
+             ) : (
+                <div className={`text-xs ${aesthetic.styles.subText} font-mono italic opacity-50 text-center py-2`}>
+                   No observations recorded yet.
+                </div>
+             )}
+          </motion.div>
+        )}
 
         {/* Action Bar */}
         <motion.div variants={itemVariants} className={`mt-auto pt-6 flex flex-col sm:flex-row gap-3 items-center justify-between`}>

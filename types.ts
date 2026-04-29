@@ -10,6 +10,16 @@ export interface Site {
   designVibe?: string;
   technicalStack?: string[];
   vibeScore?: number; // 1-100
+  fieldNote?: string; // NEW: Personal note from user
+  expeditionId?: string; // NEW: ID of the expedition it belongs to
+}
+
+export interface Expedition {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  tags: string[];
 }
 
 export enum Category {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type, Map, BookOpen, Film, Eye, Archive } from 'lucide-react';
+import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type, Map, BookOpen, Film, Eye, Archive, NotebookPen, FolderArchive, Download, FolderPlus, Upload, Database, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Site, Category, FetchStatus, CuratorPersona, AIModel, Aesthetic, TimeEra } from './types';
+import { Site, Category, FetchStatus, CuratorPersona, AIModel, Aesthetic, TimeEra, Expedition } from './types';
 import { INITIAL_SITES, CATEGORY_COLORS, CURATOR_PERSONAS, AI_MODELS, AESTHETICS, TIME_ERAS } from './constants';
 import { fetchRecommendations, searchSites, findSimilarSites, getSiteAnalysis } from './services/geminiService';
 import { SiteCard } from './components/SiteCard';
@@ -160,26 +160,6 @@ const MatrixRain: React.FC = () => {
     return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none opacity-20 z-0" />;
 };
 
-export const sanitizeInput = (input: string): string => {
-    if (typeof input !== 'string') return '';
-    return input.replace(/<\/?[^>]+(>|$)/g, "").trim();
-};
-
-export const sanitizeUrl = (input: string): string => {
-    if (typeof input !== 'string') return '';
-    const trimmed = input.trim();
-    if (!trimmed) return '';
-    try {
-        const url = new URL(trimmed);
-        if (url.protocol === 'http:' || url.protocol === 'https:') {
-            return url.href;
-        }
-        return '';
-    } catch {
-        return '';
-    }
-};
-
 const App: React.FC = () => {
   // State
   const [currentSite, setCurrentSite] = useState<Site | null>(null);
@@ -205,6 +185,8 @@ const App: React.FC = () => {
   
   const [history, setHistory] = useLocalStorage<Site[]>('rabbithole_history', []);
   const [favorites, setFavorites] = useLocalStorage<Site[]>('rabbithole_favorites', []);
+  const [expeditions, setExpeditions] = useLocalStorage<Expedition[]>('rabbithole_expeditions', []);
+  const [isArchivesOpen, setIsArchivesOpen] = useState(false);
   const [siteQueue, setSiteQueue] = useState<Site[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
@@ -244,6 +226,110 @@ const App: React.FC = () => {
     });
   };
 
+  const handleUpdateSite = (updatedSite: Site) => {
+    // Update in favorites
+    setFavorites(prev => prev.map(s => s.id === updatedSite.id ? updatedSite : s));
+    
+    // Update in current view
+    if (currentSite?.id === updatedSite.id) {
+        setCurrentSite(updatedSite);
+    }
+    
+    // Update in history if exists
+    setHistory(prev => prev.map(s => s.id === updatedSite.id ? updatedSite : s));
+  };
+
+  const exportExpeditionMarkdown = (expeditionId: string | 'all') => {
+    const sites = expeditionId === 'all' 
+        ? favorites 
+        : favorites.filter(s => s.expeditionId === expeditionId);
+    
+    const expedition = expeditions.find(e => e.id === expeditionId);
+    const title = expedition ? expedition.name : 'Full Collections';
+    
+    let md = `# Research Dossier: ${title}\n`;
+    md += `Generated: ${new Date().toLocaleDateString()} | Rabbit Hole Terminal\n\n`;
+    
+    sites.forEach(site => {
+        md += `## ${site.title}\n`;
+        md += `URL: ${site.url}\n`;
+        md += `Category: ${site.category}\n\n`;
+        md += `### Curator's Record\n${site.curatorNote || 'No record.'}\n\n`;
+        if (site.fieldNote) {
+            md += `### Personal Observations\n${site.fieldNote}\n\n`;
+        }
+        md += `---\n\n`;
+    });
+    
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dossier-${title.toLowerCase().replace(/\s+/g, '-')}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    playSound('success');
+  };
+
+  const exportAllData = () => {
+    const data = { history, favorites, expeditions, submittedSites };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rabbithole-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    playSound('success');
+  };
+
+  const importAllData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.history) setHistory(data.history);
+        if (data.favorites) setFavorites(data.favorites);
+        if (data.expeditions) setExpeditions(data.expeditions);
+        if (data.submittedSites) setSubmittedSites(data.submittedSites);
+        playSound('success');
+        alert("Data successfully imported!");
+      } catch (err) {
+        alert("Invalid backup file.");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const bulkEnqueueUrls = () => {
+    const input = prompt("Paste URLs separated by lines or commas to add to queue:");
+    if (!input) return;
+    
+    const urls = input.split(/[\n,]+/).map(u => u.trim()).filter(u => u.startsWith('http'));
+    if (urls.length === 0) {
+        alert("No valid URLs found.");
+        return;
+    }
+    
+    const newSites: Site[] = urls.map(url => ({
+        id: Math.random().toString(36).substr(2, 9),
+        title: new URL(url).hostname,
+        url,
+        description: "Manually injected web node. Proceed with caution.",
+        category: Category.ALL,
+        tags: ["injected", "manual"],
+        curatorNote: "Anomalous manual entry injected by user."
+    }));
+    
+    setSiteQueue(prev => [...prev, ...newSites]);
+    playSound('success');
+    alert(`Enqueued ${newSites.length} nodes for exploration.`);
+  };
+
   const randomizeConfig = () => {
     const randomPersona = CURATOR_PERSONAS[Math.floor(Math.random() * CURATOR_PERSONAS.length)];
     const randomModel = AI_MODELS[Math.floor(Math.random() * AI_MODELS.length)];
@@ -277,11 +363,10 @@ const App: React.FC = () => {
 
   const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
     if (e) e.preventDefault();
-    const rawQ = overrideQuery || searchQuery;
-    const q = sanitizeInput(rawQ);
-    if (!q) return;
+    const q = overrideQuery || searchQuery;
+    if (!q.trim()) return;
 
-    if (overrideQuery) setSearchQuery(q);
+    if (overrideQuery) setSearchQuery(overrideQuery);
 
     playSound('static');
     setStatus('loading');
@@ -631,6 +716,12 @@ const App: React.FC = () => {
           playSound('blip');
       }
 
+      if (e.key.toLowerCase() === 'q' && !isInput) {
+          e.preventDefault();
+          setSiteQueue([]);
+          playSound('static');
+      }
+
       if (e.key.toLowerCase() === 'a' && !isInput && currentSite && !isAnalyzing) {
           e.preventDefault();
           const pSite = currentSite; 
@@ -729,6 +820,10 @@ const App: React.FC = () => {
 
          {/* Actions */}
          <div className="flex items-center gap-2 flex-shrink-0 relative">
+            <button onClick={() => setIsSidebarOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`} title="Open Research Library">
+                 <FolderArchive size={18} />
+             </button>
+
             <div className={`hidden lg:flex items-center mr-2 px-3 py-1 rounded-full border ${activeAesthetic.styles.border} bg-white/5`}>
                 <span className={`text-[9px] font-mono font-bold ${activeAesthetic.styles.text} flex items-center gap-2`}>
                    QUEUE <span className={activeAesthetic.styles.accent}>{siteQueue.length}</span>
@@ -1156,6 +1251,7 @@ const App: React.FC = () => {
                         era={activeEra}
                         isFavorite={favorites.some(f => f.id === currentSite.id)}
                         onToggleFavorite={(s) => { playSound('blip'); toggleFavorite(s); }}
+                        onUpdateSite={handleUpdateSite}
                         onVisit={() => window.open(currentSite.url, '_blank')}
                         onTagClick={handleTagClick}
                         onFindSimilar={handleFindSimilar}
@@ -1265,42 +1361,130 @@ const App: React.FC = () => {
                </motion.button>
           </div>
 
-          {favorites.length > 0 && (
-             <div className="mb-10">
-               <div className="flex justify-between items-center mb-4">
-                 <h3 className={`text-[10px] font-mono font-bold ${activeAesthetic.styles.subText} uppercase tracking-widest flex items-center gap-2`}>
-                   <Heart size={10} className="text-pink-500" /> Saved Nodes
-                 </h3>
-                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setFavorites([])} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear ALL Favorites">
-                    <Trash2 size={10} /> Clear
-                 </motion.button>
+          {/* Research Archive */}
+          <div className="mb-10">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className={`text-[10px] font-mono font-bold ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] flex items-center gap-2`}>
+                <NotebookPen size={12} className={activeAesthetic.styles.accent} /> Research Archive
+              </h3>
+              <div className="flex gap-2">
+                {favorites.length > 0 && (
+                  <motion.button 
+                    whileHover={{ scale: 1.1 }} 
+                    whileTap={{ scale: 0.9 }} 
+                    onClick={() => exportExpeditionMarkdown('all')} 
+                    className={`p-1.5 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}
+                    title="Export All to Markdown"
+                  >
+                    <Download size={14} />
+                  </motion.button>
+                )}
+                <motion.button 
+                   whileHover={{ scale: 1.1 }} 
+                   whileTap={{ scale: 0.9 }} 
+                   onClick={() => {
+                      const name = prompt("Expedition Name:");
+                      if (name) {
+                          const newEx: Expedition = {
+                              id: Math.random().toString(36).substr(2, 9),
+                              name,
+                              description: "",
+                              createdAt: new Date().toISOString(),
+                              tags: []
+                          };
+                          setExpeditions(prev => [newEx, ...prev]);
+                          playSound('success');
+                      }
+                   }} 
+                   className={`p-1.5 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}
+                   title="New Expedition"
+                >
+                  <FolderPlus size={14} />
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Expeditions List */}
+            {expeditions.length > 0 && (
+               <div className="space-y-4 mb-8">
+                  {expeditions.map(ex => {
+                      const count = favorites.filter(f => f.expeditionId === ex.id).length;
+                      return (
+                        <div key={ex.id} className={`p-4 rounded-xl border ${activeAesthetic.styles.border} bg-white/5`}>
+                           <div className="flex justify-between items-center mb-2">
+                              <h4 className={`text-xs font-bold ${activeAesthetic.styles.text}`}>{ex.name}</h4>
+                              <div className="flex gap-2">
+                                <button onClick={() => exportExpeditionMarkdown(ex.id)} className={`${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`} title="Export Expedition"><Download size={12}/></button>
+                                <button onClick={() => setExpeditions(prev => prev.filter(e => e.id !== ex.id))} className="text-red-500/50 hover:text-red-500"><Trash2 size={12}/></button>
+                              </div>
+                           </div>
+                           <div className={`text-[10px] ${activeAesthetic.styles.subText} mb-2`}>{count} nodes collected</div>
+                           <div className="flex flex-col gap-1">
+                              {favorites.filter(f => f.expeditionId === ex.id).slice(0, 3).map(f => (
+                                 <button key={f.id} onClick={() => { setCurrentSite(f); setIsSidebarOpen(false); setShowWelcome(false); }} className={`text-[9px] ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text} text-left truncate`}>
+                                    &bull; {f.title}
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                      );
+                  })}
                </div>
-               <div className="space-y-3">
-                 <AnimatePresence>
-                 {favorites.map((site, i) => (
-                   <motion.div 
-                      layout
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ delay: i * 0.05 }}
-                      key={site.id} 
-                      className={`bg-white/5 rounded-xl p-4 border border-white/5 hover:${activeAesthetic.styles.border} transition-colors group cursor-pointer`} 
-                      onClick={() => { setCurrentSite(site); setIsSidebarOpen(false); setShowWelcome(false); }}
-                   >
-                      <div className="flex justify-between items-start">
-                        <h4 className={`font-bold ${activeAesthetic.styles.text} text-sm line-clamp-1`}>{site.title}</h4>
+            )}
+
+            {/* Ungrouped/All Favorites */}
+            <div className="space-y-3">
+              <div className={`text-[9px] font-mono font-bold ${activeAesthetic.styles.subText} uppercase mb-2`}>
+                 {expeditions.length > 0 ? "Ungrouped Nodes" : "All Discoveries"}
+              </div>
+              <AnimatePresence>
+              {favorites.filter(f => !f.expeditionId || expeditions.length === 0).map((site, i) => (
+                <motion.div 
+                   layout
+                   initial={{ opacity: 0, x: 20 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   exit={{ opacity: 0, scale: 0.8 }}
+                   transition={{ delay: i * 0.05 }}
+                   key={site.id} 
+                   className={`bg-white/5 rounded-xl p-4 border border-white/5 hover:${activeAesthetic.styles.border} transition-colors group cursor-pointer`} 
+                   onClick={() => { setCurrentSite(site); setIsSidebarOpen(false); setShowWelcome(false); }}
+                >
+                   <div className="flex justify-between items-start">
+                     <h4 className={`font-bold ${activeAesthetic.styles.text} text-sm line-clamp-1`}>{site.title}</h4>
+                     <div className="flex gap-2 items-center">
+                        {expeditions.length > 0 && (
+                            <select 
+                               onClick={e => e.stopPropagation()}
+                               onChange={e => {
+                                   handleUpdateSite({ ...site, expeditionId: e.target.value });
+                               }}
+                               value={site.expeditionId || ""}
+                               className={`bg-black/50 border-none text-[8px] rounded px-1 text-white opacity-0 group-hover:opacity-100 transition-opacity`}
+                            >
+                               <option value="">Move to...</option>
+                               {expeditions.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+                            </select>
+                        )}
                         <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); toggleFavorite(site); }} className="text-pink-500 opacity-0 group-hover:opacity-100 transition-opacity">
                           <X size={14} />
                         </motion.button>
+                     </div>
+                   </div>
+                   <p className={`text-[10px] ${activeAesthetic.styles.subText} mt-1 line-clamp-1 leading-relaxed italic`}>{site.description}</p>
+                   {site.fieldNote && (
+                      <div className="mt-2 pt-2 border-t border-white/5 flex items-center gap-2">
+                        <NotebookPen size={10} className={activeAesthetic.styles.accent} />
+                        <span className={`text-[9px] ${activeAesthetic.styles.subText} truncate`}>{site.fieldNote}</span>
                       </div>
-                      <p className={`text-xs ${activeAesthetic.styles.subText} mt-2 line-clamp-2 leading-relaxed`}>{site.description}</p>
-                   </motion.div>
-                 ))}
-                 </AnimatePresence>
-               </div>
-             </div>
-          )}
+                   )}
+                </motion.div>
+              ))}
+              </AnimatePresence>
+              {favorites.length === 0 && (
+                 <p className={`text-[10px] ${activeAesthetic.styles.subText} italic text-center py-4`}>No nodes archived yet.</p>
+              )}
+            </div>
+          </div>
 
           <div>
              <div className="flex justify-between items-center mb-4">
@@ -1308,7 +1492,7 @@ const App: React.FC = () => {
                  <History size={10} /> Session Log
                </h3>
                {history.length > 0 && (
-                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setHistory([])} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear History">
+                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { if(confirm('Erase entire session log?')) setHistory([]) }} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear History">
                     <Trash2 size={10} /> Clear
                  </motion.button>
                )}
@@ -1344,6 +1528,49 @@ const App: React.FC = () => {
                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`text-sm ${activeAesthetic.styles.subText} italic text-center py-4`}>No stumbles yet.</motion.p>
                )}
                </AnimatePresence>
+             </div>
+           </div>
+
+           {/* Terminal Operations / Data Management */}
+           <div className="mt-8 pt-6 border-t border-white/10">
+              <div className="flex justify-between items-center mb-4">
+               <h3 className={`text-[10px] font-mono font-bold ${activeAesthetic.styles.subText} uppercase tracking-widest flex items-center gap-2`}>
+                 <Database size={10} /> Data Management
+               </h3>
+             </div>
+             <div className="flex flex-col gap-2">
+                <button 
+                  onClick={exportAllData} 
+                  className={`flex flex-1 items-center gap-2 p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 hover:bg-white/10 transition-colors text-[10px] font-mono uppercase tracking-widest ${activeAesthetic.styles.text}`}
+                >
+                   <Download size={14} className={activeAesthetic.styles.accent} />
+                   Backup Data
+                </button>
+                <div className="relative">
+                    <input 
+                      type="file" 
+                      accept=".json" 
+                      onChange={importAllData}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <button 
+                      className={`w-full flex items-center gap-2 p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 hover:bg-white/10 transition-colors text-[10px] font-mono uppercase tracking-widest ${activeAesthetic.styles.text}`}
+                    >
+                       <Upload size={14} className={activeAesthetic.styles.accent} />
+                       Restore Backup
+                    </button>
+                </div>
+                <button 
+                  onClick={() => {
+                      bulkEnqueueUrls();
+                      setIsSidebarOpen(false);
+                      setShowWelcome(false);
+                  }} 
+                  className={`flex items-center gap-2 p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 hover:bg-white/10 transition-colors text-[10px] font-mono uppercase tracking-widest ${activeAesthetic.styles.text}`}
+                >
+                   <Globe size={14} className={activeAesthetic.styles.accent} />
+                   Bulk Enqueue URLs
+                </button>
              </div>
            </div>
         </div>
@@ -1383,17 +1610,13 @@ const App: React.FC = () => {
                  const formData = new FormData(e.currentTarget);
                  const newSite = {
                     id: Math.random().toString(36).substr(2, 9),
-                    title: sanitizeInput(formData.get('title') as string),
-                    url: sanitizeUrl(formData.get('url') as string),
-                    description: sanitizeInput(formData.get('description') as string),
+                    title: formData.get('title') as string,
+                    url: formData.get('url') as string,
+                    description: formData.get('description') as string,
                     category: formData.get('category') as Category,
-                    tags: sanitizeInput(formData.get('tags') as string).split(',').map(t => t.trim()).filter(Boolean),
+                    tags: (formData.get('tags') as string).split(',').map(t => t.trim()).filter(Boolean),
                     submittedAt: new Date().toISOString()
                  };
-                 if (!newSite.url) {
-                     playSound('error');
-                     return;
-                 }
                  setSubmittedSites(prev => [newSite, ...prev]);
                  setIsSubmitModalOpen(false);
                  playSound('success');
@@ -1508,7 +1731,7 @@ const App: React.FC = () => {
               <form onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
-                  const key = sanitizeInput(formData.get('apiKey') as string);
+                  const key = formData.get('apiKey') as string;
                   window.localStorage.setItem('RABBIT_HOLE_API_KEY', key);
                   setIsNeuralLinkModalOpen(false);
                   playSound('success');
@@ -1627,6 +1850,10 @@ const App: React.FC = () => {
                     <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>F</kbd>
                  </motion.div>
                  <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
+                    <span>Clear Queue</span>
+                    <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>Q</kbd>
+                 </motion.div>
+                 <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className={`flex justify-between items-center text-sm ${activeAesthetic.styles.text}`}>
                     <span>Toggle Help Info</span>
                     <kbd className={`px-2 py-1 bg-black/40 border ${activeAesthetic.styles.border} rounded font-mono text-xs text-white`}>?</kbd>
                  </motion.div>
@@ -1671,6 +1898,10 @@ const App: React.FC = () => {
               <div className="glass-pill px-3 py-1.5 flex items-center gap-2 pointer-events-auto shadow-lg hidden md:flex">
                   <Type size={10} className={activeAesthetic.styles.accent} />
                   <span className={`text-[9px] font-mono font-black tracking-[0.2em] ${activeAesthetic.styles.text}`}>{activeAesthetic.styles.font?.replace('font-', '').toUpperCase() || 'SANS'}</span>
+              </div>
+              <div className="glass-pill px-3 py-1.5 flex items-center gap-2 pointer-events-auto shadow-lg hidden md:flex">
+                  <Archive size={10} className={activeAesthetic.styles.accent} />
+                  <span className={`text-[9px] font-mono font-black tracking-[0.2em] ${activeAesthetic.styles.text}`}>{history.length} VISITED</span>
               </div>
           </div>
 
