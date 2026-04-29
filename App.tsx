@@ -288,6 +288,22 @@ const App: React.FC = () => {
     playSound('success');
   };
 
+  const exportCsv = () => {
+    let csv = 'Title,URL,Category,Year,Description\n';
+    history.forEach(site => {
+       csv += `"${site.title.replace(/"/g, '""')}","${site.url}","${site.category}","${site.yearEstablished || ''}","${(site.description || '').replace(/"/g, '""')}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rabbithole-history-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    playSound('success');
+  };
+
   const exportAllData = () => {
     const data = { history, favorites, expeditions, submittedSites };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -623,6 +639,21 @@ const App: React.FC = () => {
       fallbackStumble();
     }
   }, [selectedCategory, selectedTag, siteQueue, fallbackStumble, fetchMoreSites, addToHistory, isSearchActive, searchQuery, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, safeSearch, maxQueueDepth, dataSource]); // handleSearch intentionally omitted to prevent circular dependency unless memoized properly, but we can safely call it using the current state values inside the callback.
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input or textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handleStumble();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleStumble]);
 
   useEffect(() => {
     setSiteQueue([]);
@@ -1785,12 +1816,17 @@ const App: React.FC = () => {
                  <History size={10} /> Session Log
                </h3>
                {history.length > 0 && (
-                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { if(confirm('Erase entire session log?')) setHistory([]) }} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear History">
-                    <Trash2 size={10} /> Clear
-                 </motion.button>
+                 <div className="flex items-center gap-3">
+                   <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={exportCsv} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-white transition-colors flex items-center gap-1`} title="Export CSV">
+                      <Download size={10} /> CSV
+                   </motion.button>
+                   <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { if(confirm('Erase entire session log?')) setHistory([]) }} className={`text-[10px] uppercase font-mono ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors flex items-center gap-1`} title="Clear History">
+                      <Trash2 size={10} /> Clear
+                   </motion.button>
+                 </div>
                )}
              </div>
-             <div className="space-y-3">
+             <div className="space-y-0 relative border-l-2 ml-2 border-current/10 pl-4 py-2">
                <AnimatePresence>
                {history.map((site, idx) => (
                  <motion.div 
@@ -1800,9 +1836,12 @@ const App: React.FC = () => {
                     exit={{ opacity: 0, scale: 0.8 }}
                     transition={{ delay: idx * 0.05 }}
                     key={`${site.id}-${idx}`} 
-                    className={`group bg-white/5 rounded-xl p-4 border border-transparent hover:${activeAesthetic.styles.border} transition-colors cursor-pointer`} 
+                    className={`relative group bg-white/5 rounded-xl p-4 border border-transparent hover:${activeAesthetic.styles.border} transition-colors cursor-pointer mb-3 ml-2`} 
                     onClick={() => { setCurrentSite(site); setIsSidebarOpen(false); setShowWelcome(false); }}
                  >
+                    {/* Timeline Node dot */}
+                    <div className={`absolute top-1/2 -left-7 w-3 h-3 -translate-y-1/2 rounded-full ${CATEGORY_COLORS[site.category] || 'bg-slate-600'} border-2 border-black group-hover:scale-150 transition-transform`} />
+                    
                     <div className="flex justify-between items-center mb-2">
                       <h4 className={`font-bold ${activeAesthetic.styles.text} text-sm line-clamp-1 group-hover:${activeAesthetic.styles.accent} transition-colors`}>{site.title}</h4>
                       <span className={`text-[9px] uppercase tracking-widest font-mono px-2 py-1 rounded bg-black/50 ${CATEGORY_COLORS[site.category]} text-white`}>

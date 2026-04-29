@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Site, Aesthetic, CuratorPersona, TimeEra } from '../types';
 import { CATEGORY_COLORS } from '../constants';
-import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck, Tag, Terminal, Play, Square, Volume2, NotebookPen, Save, X as CloseIcon, Pencil } from 'lucide-react';
+import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck, Tag, Terminal, Play, Square, Volume2, NotebookPen, Save, X as CloseIcon, Pencil, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateSpeech, chatWithPersona } from '../services/geminiService';
 import Markdown from 'react-markdown';
@@ -275,7 +275,7 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
     }
   };
 
-  const itemVariants = {
+  const itemVariants: any = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, type: 'spring', bounce: 0.4 } }
   };
@@ -669,6 +669,19 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
               <ExternalLink size={20} className="group-hover/btn:rotate-45 transition-transform duration-300" />
             </span>
           </motion.button>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => window.open(`https://web.archive.org/web/*/${site.url}`, '_blank')}
+            className={`w-full sm:w-auto group/btn overflow-hidden relative flex items-center justify-center gap-3 bg-black/50 text-white font-bold py-4 px-8 border border-white/20 ${isBrutal ? 'rounded-none' : 'rounded-xl'} text-base sm:text-lg transition-all shadow-xl hover:shadow-2xl flex-1 max-w-sm`}
+          >
+            <div className="absolute inset-0 w-0 bg-white/10 group-hover/btn:w-full transition-all duration-300 ease-out"></div>
+            <span className="relative flex items-center gap-2">
+              Time Travel
+              <History size={20} className="group-hover/btn:-rotate-45 transition-transform duration-300" />
+            </span>
+          </motion.button>
         </motion.div>
 
         <AnimatePresence>
@@ -693,7 +706,9 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
                                       {msg.role === 'user' ? 'You' : persona.name}
                                   </span>
                                   <div className={`p-3 rounded-xl ${msg.role === 'user' ? `${aesthetic.styles.bg} border ${aesthetic.styles.border} ${aesthetic.styles.text}` : `bg-black/60 border ${aesthetic.styles.border} ${aesthetic.styles.highlight}`}`}>
-                                      <Markdown className="markdown-body prose-sm">{msg.content}</Markdown>
+                                      <div className="markdown-body prose-sm">
+                                          <Markdown>{msg.content}</Markdown>
+                                      </div>
                                   </div>
                               </div>
                           ))}
