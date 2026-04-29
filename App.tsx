@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type, Map, BookOpen, Film, Eye, Archive, NotebookPen, FolderArchive, Download, FolderPlus, Upload, Database, Globe, Settings2, ShieldAlert, Bug, Minimize2, ListOrdered, HardDrive, Focus, Volume1 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import Markdown from 'react-markdown';
 import { Site, Category, FetchStatus, CuratorPersona, AIModel, Aesthetic, TimeEra, Expedition } from './types';
 import { INITIAL_SITES, CATEGORY_COLORS, CURATOR_PERSONAS, AI_MODELS, AESTHETICS, TIME_ERAS } from './constants';
-import { fetchRecommendations, searchSites, findSimilarSites, getSiteAnalysis } from './services/geminiService';
+import { fetchRecommendations, searchSites, findSimilarSites, getSiteAnalysis, generateTopicSummary } from './services/geminiService';
 import { fetchFromWikiAPI } from './services/wikiService';
 import { SiteCard } from './components/SiteCard';
+import { GraphView } from './components/GraphView';
 
 // --- Global Storage Helper for Sound ---
 const isSoundEnabled = () => {
@@ -179,6 +181,8 @@ const App: React.FC = () => {
   const [activeEra, setActiveEra] = useState<TimeEra>(TIME_ERAS[0]);
   
   const [searchResults, setSearchResults] = useState<Site[] | null>(null);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'classic' | 'graph'>('classic');
   const [showConfig, setShowConfig] = useState(false);
   const [loadingAction, setLoadingAction] = useState<'search' | 'stumble' | 'similar'>('stumble');
   const [currentAnalysis, setCurrentAnalysis] = useState<string | null>(null);
@@ -193,7 +197,7 @@ const App: React.FC = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  const [isNeuralLinkModalOpen, setIsNeuralLinkModalOpen] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [submittedSites, setSubmittedSites] = useLocalStorage<any[]>('rabbithole_submissions', []);
@@ -398,6 +402,7 @@ const App: React.FC = () => {
     setCurrentAnalysis(null);
     setSiteQueue([]); 
     setSearchResults(null);
+    setAiSummary(null);
 
     try {
       let results: Site[] = [];
@@ -423,6 +428,13 @@ const App: React.FC = () => {
         playSound('success');
         setSearchResults(results);
         setStatus('success');
+        
+        // Asynchronously fetch AI summary
+        if (dataSource === 'gemini') {
+            generateTopicSummary(q, results, activeModel).then(summary => setAiSummary(summary));
+        } else {
+            generateTopicSummary(q, results, AI_MODELS[0]).then(summary => setAiSummary(summary));
+        }
       } else {
         setStatus('idle');
         setSearchQuery("");
@@ -498,7 +510,7 @@ const App: React.FC = () => {
           const analysis = await getSiteAnalysis(site, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra);
           setCurrentAnalysis(analysis);
       } catch (e: any) {
-          setCurrentAnalysis(e.message || "Neural link severed. Local analysis unavailable.");
+          setCurrentAnalysis(e.message || "Connection failed. Local analysis unavailable.");
       } finally {
           setIsAnalyzing(false);
       }
@@ -616,7 +628,7 @@ const App: React.FC = () => {
     setSiteQueue([]);
   }, [activePersona, activeModel, activeAesthetic, activeEra]);
 
-  const NeuralLoading = () => {
+  const WebLoading = () => {
     let title = "GATHERING";
     let subtitle = `Browsing ${activeEra.name} websites`;
     
@@ -997,7 +1009,7 @@ const App: React.FC = () => {
                          {/* Model Selector */}
                          <div className={`mb-8 text-left`}>
                              <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pr-2`}>
-                                <Cpu size={12} /> 04. Neural Engine
+                                <Cpu size={12} /> 04. AI Engine
                                 <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
                              </div>
                              <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
@@ -1059,7 +1071,7 @@ const App: React.FC = () => {
                                {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
                                <span className="text-[10px] font-mono uppercase tracking-widest leading-none text-center">{soundEnabled ? 'Sound On' : 'Sound Off'}</span>
                             </motion.button>
-                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsNeuralLinkModalOpen(true)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsApiKeyModalOpen(true)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
                                <Terminal size={16} />
                                <span className="text-[10px] font-mono uppercase tracking-widest leading-none text-center">Assistant Setup</span>
                             </motion.button>
@@ -1243,7 +1255,7 @@ const App: React.FC = () => {
              )}
              </AnimatePresence>
 
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setIsNeuralLinkModalOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 hidden sm:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`} title="Assistant Setup">
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setIsApiKeyModalOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 hidden sm:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`} title="Assistant Setup">
                <BrainCircuit size={18} />
             </motion.button>
 
@@ -1362,10 +1374,10 @@ const App: React.FC = () => {
             <AnimatePresence mode="wait">
             {status === 'loading' ? (
               <motion.div key="loading" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="w-full">
-                <NeuralLoading />
+                <WebLoading />
               </motion.div>
             ) : searchResults ? (
-               <motion.div key="search-results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full mx-auto px-4 mt-8 relative z-10">
+               <motion.div key="search-results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full mx-auto px-4 relative z-10 max-w-7xl">
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
                         <h2 className={`text-4xl font-display font-black tracking-tight ${activeAesthetic.styles.text} mb-2`}>Search Results</h2>
@@ -1382,6 +1394,27 @@ const App: React.FC = () => {
                         <X size={16}/> Clear Results
                     </motion.button>
                  </div>
+
+                 {/* Deep Research Synthesis */}
+                 <AnimatePresence>
+                     {aiSummary && (
+                         <motion.div
+                             initial={{ opacity: 0, height: 0 }}
+                             animate={{ opacity: 1, height: 'auto' }}
+                             exit={{ opacity: 0, height: 0 }}
+                             className={`mb-8 p-6 rounded-2xl border ${activeAesthetic.styles.border} glass-panel relative overflow-hidden`}
+                         >
+                             <div className={`absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none`}></div>
+                             <div className="flex items-center gap-3 mb-4">
+                                 <Sparkles size={20} className={activeAesthetic.styles.accent} />
+                                 <h3 className={`font-bold font-display text-lg ${activeAesthetic.styles.text}`}>Deep Research Synthesis</h3>
+                             </div>
+                             <div className={`text-sm md:text-base leading-relaxed ${activeAesthetic.styles.subText} markdown-body ai-summary max-h-96 overflow-y-auto custom-scrollbar pr-4`}>
+                                 <Markdown>{aiSummary}</Markdown>
+                             </div>
+                         </motion.div>
+                     )}
+                 </AnimatePresence>
                  
                  <motion.div 
                     initial="hidden"
@@ -1443,42 +1476,84 @@ const App: React.FC = () => {
                  </motion.div>
               </motion.div>
             ) : currentSite ? (
-              <motion.div key="site-renderer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="w-full">
-                 {isSearchActive && (
-                    <div className="flex justify-center mb-4">
-                        <span className={`${activeAesthetic.styles.cardBg} ${activeAesthetic.styles.text} border ${activeAesthetic.styles.border} px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 relative z-50`}>
-                            <Search size={12} /> Results for: "{searchQuery}"
-                            <button onClick={() => { setIsSearchActive(false); setSearchQuery(''); handleStumble(); }} className="hover:opacity-50"><X size={12}/></button>
-                        </span>
-                    </div>
-                 )}
+               <motion.div key="site-renderer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="w-full">
+                  <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4 px-4 w-full max-w-4xl mx-auto z-50">
+                      {isSearchActive ? (
+                         <span className={`${activeAesthetic.styles.cardBg} ${activeAesthetic.styles.text} border ${activeAesthetic.styles.border} px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 relative`}>
+                             <Search size={12} /> Results for: "{searchQuery}"
+                             <button onClick={() => { setIsSearchActive(false); setSearchQuery(''); handleStumble(); }} className="hover:opacity-50"><X size={12}/></button>
+                         </span>
+                      ) : (
+                         <div />
+                      )}
+
+                      {/* View Mode Toggle */}
+                      <div className={`flex items-center gap-1 ${activeAesthetic.styles.cardBg} border ${activeAesthetic.styles.border} p-1 rounded-full relative z-50`}>
+                          <button 
+                             onClick={() => setViewMode('classic')}
+                             className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${viewMode === 'classic' ? `${activeAesthetic.styles.accent} bg-white/10` : activeAesthetic.styles.subText}`}
+                          >
+                             <Eye size={12} /> Focus
+                          </button>
+                          <button 
+                             onClick={() => {
+                                 setViewMode('graph');
+                                 playSound('blip');
+                             }}
+                             className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${viewMode === 'graph' ? `${activeAesthetic.styles.accent} bg-white/10` : activeAesthetic.styles.subText}`}
+                          >
+                             <Map size={12} /> Topology
+                          </button>
+                      </div>
+                  </div>
                  <AnimatePresence mode="wait">
-                   <motion.div
-                     key={currentSite.id}
-                     initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
-                     animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                     exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
-                     transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
-                   >
-                     <SiteCard 
-                        site={currentSite} 
-                        aesthetic={activeAesthetic}
-                        persona={activePersona}
-                        era={activeEra}
-                        isFavorite={favorites.some(f => f.id === currentSite.id)}
-                        onToggleFavorite={(s) => { playSound('blip'); toggleFavorite(s); }}
-                        onUpdateSite={handleUpdateSite}
-                        onVisit={() => window.open(currentSite.url, '_blank')}
-                        onTagClick={handleTagClick}
-                        onFindSimilar={handleFindSimilar}
-                        onAnalyze={handleAnalyzeSite}
-                        selectedTag={selectedTag}
-                        analysisText={currentAnalysis}
-                        isAnalyzing={isAnalyzing}
-                        compactMode={compactMode}
-                        autoSpeak={autoSpeak}
-                     />
-                   </motion.div>
+                    {viewMode === 'graph' ? (
+                       <motion.div
+                         key="graph-view"
+                         initial={{ opacity: 0, scale: 0.95 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         exit={{ opacity: 0, scale: 1.05 }}
+                         transition={{ duration: 0.4 }}
+                         className="w-full max-w-6xl mx-auto px-4 z-10 relative"
+                       >
+                         <GraphView 
+                            history={history} 
+                            aesthetic={activeAesthetic} 
+                            onNodeClick={(s) => {
+                                setCurrentSite(s);
+                                setViewMode('classic');
+                                playSound('blip');
+                            }} 
+                         />
+                       </motion.div>
+                    ) : (
+                       <motion.div
+                         key={currentSite.id}
+                         initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                         animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                         exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
+                         transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
+                       >
+                         <SiteCard 
+                            site={currentSite} 
+                            aesthetic={activeAesthetic}
+                            persona={activePersona}
+                            era={activeEra}
+                            isFavorite={favorites.some(f => f.id === currentSite.id)}
+                            onToggleFavorite={(s) => { playSound('blip'); toggleFavorite(s); }}
+                            onUpdateSite={handleUpdateSite}
+                            onVisit={() => window.open(currentSite.url, '_blank')}
+                            onTagClick={handleTagClick}
+                            onFindSimilar={handleFindSimilar}
+                            onAnalyze={handleAnalyzeSite}
+                            selectedTag={selectedTag}
+                            analysisText={currentAnalysis}
+                            isAnalyzing={isAnalyzing}
+                            compactMode={compactMode}
+                            autoSpeak={autoSpeak}
+                         />
+                       </motion.div>
+                    )}
                  </AnimatePresence>
               </motion.div>
             ) : (
@@ -1912,15 +1987,15 @@ const App: React.FC = () => {
       )}
       </AnimatePresence>
 
-      {/* Neural Link Configuration Modal */}
+      {/* API Key Modal */}
       <AnimatePresence>
-      {isNeuralLinkModalOpen && (
+      {isApiKeyModalOpen && (
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4" 
-            onClick={() => setIsNeuralLinkModalOpen(false)}
+            onClick={() => setIsApiKeyModalOpen(false)}
         >
            <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -1935,7 +2010,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsNeuralLinkModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsApiKeyModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
                  <X size={20} />
               </motion.button>
 
@@ -1951,7 +2026,7 @@ const App: React.FC = () => {
                   const formData = new FormData(e.currentTarget);
                   const key = formData.get('apiKey') as string;
                   window.localStorage.setItem('RABBIT_HOLE_API_KEY', key);
-                  setIsNeuralLinkModalOpen(false);
+                  setIsApiKeyModalOpen(false);
                   playSound('success');
                   // Quick refresh of the app state might be needed or just let the next AI call use the new key
                   setGlobalError(null);

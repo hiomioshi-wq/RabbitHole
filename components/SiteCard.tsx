@@ -3,7 +3,10 @@ import { Site, Aesthetic, CuratorPersona, TimeEra } from '../types';
 import { CATEGORY_COLORS } from '../constants';
 import { ExternalLink, Hash, Calendar, Heart, Share2, Check, Sparkles, BrainCircuit, Loader2, Gauge, Cpu, Palette, Eye, EyeOff, Copy, CheckCheck, Tag, Terminal, Play, Square, Volume2, NotebookPen, Save, X as CloseIcon, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { generateSpeech } from '../services/geminiService';
+import { generateSpeech, chatWithPersona } from '../services/geminiService';
+import Markdown from 'react-markdown';
+import { AIModel } from '../types';
+import { AI_MODELS } from '../constants';
 
 interface SiteCardProps {
   site: Site;
@@ -12,7 +15,7 @@ interface SiteCardProps {
   era: TimeEra;
   isFavorite: boolean;
   onToggleFavorite: (site: Site) => void;
-  onUpdateSite?: (site: Site) => void; // NEW: Update site data (like notes)
+  onUpdateSite?: (site: Site) => void;
   onVisit: () => void;
   onTagClick: (tag: string) => void;
   onFindSimilar?: (site: Site) => void;
@@ -31,6 +34,11 @@ const ANALYSIS_PHRASES = [
     "Calculating vibe resonance...",
     "Synthesizing assistant insights..."
 ];
+
+interface ChatMessage {
+   role: 'user' | 'model';
+   content: string;
+}
 
 export const SiteCard: React.FC<SiteCardProps> = React.memo(({ 
   site, 
@@ -56,6 +64,11 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatting, setIsChatting] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
 
   useEffect(() => {
@@ -115,6 +128,32 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
          return () => { isActive = false; clearTimeout(timeout); };
      }
   }, [site.id, autoSpeak]);
+
+  useEffect(() => {
+      if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+      }
+  }, [chatHistory, isChatting]);
+
+  const handleChatSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!chatInput.trim() || isChatting) return;
+
+      const userMsg = chatInput.trim();
+      setChatInput('');
+      const newHistory = [...chatHistory, { role: 'user' as const, content: userMsg }];
+      setChatHistory(newHistory);
+      setIsChatting(true);
+
+      try {
+          const reply = await chatWithPersona(site, persona, AI_MODELS[0], newHistory, userMsg);
+          setChatHistory(prev => [...prev, { role: 'model' as const, content: reply }]);
+      } catch (err: any) {
+          setChatHistory(prev => [...prev, { role: 'model' as const, content: `*[ERR: ${err.message}]*` }]);
+      } finally {
+          setIsChatting(false);
+      }
+  };
 
   const handleSynthesizeNote = async () => {
       if (isPlayingNote) {
@@ -602,6 +641,20 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
                      <span className="hidden sm:inline">{showAnalysis ? 'Hide' : 'Analyze'}</span>
                  </motion.button>
              )}
+             <motion.button
+                 whileHover={{ scale: 1.05 }}
+                 whileTap={{ scale: 0.95 }}
+                 onClick={() => {
+                     setShowChat(!showChat);
+                     if (!showChat && chatHistory.length === 0) {
+                         setChatHistory([{ role: 'model', content: `Greetings. I am ${persona.name}. What would you like to know about ${site.title}?` }]);
+                     }
+                 }}
+                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 ${showChat ? aesthetic.styles.highlight + ' bg-black/10' : aesthetic.styles.accent + ' border border-current/20 hover:bg-black/5'} font-bold py-3 px-5 rounded-xl transition-all text-sm`}
+             >
+                 <Terminal size={16} />
+                 <span className="hidden sm:inline">{showChat ? 'Close Chat' : 'Ask'}</span>
+             </motion.button>
           </div>
 
           <motion.button
@@ -617,6 +670,64 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
             </span>
           </motion.button>
         </motion.div>
+
+        <AnimatePresence>
+          {showChat && (
+              <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden mt-6"
+              >
+                  <div className={`p-4 rounded-xl border ${aesthetic.styles.border} bg-black/40 backdrop-blur-md flex flex-col gap-4 max-h-[400px]`}>
+                      <div className="flex items-center justify-between border-b border-current/10 pb-2">
+                         <div className={`text-xs font-mono font-bold flex items-center gap-2 ${aesthetic.styles.accent}`}>
+                             <Terminal size={14} /> Link Established: {persona.name}
+                         </div>
+                      </div>
+                      
+                      <div ref={chatScrollRef} className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar text-sm flex flex-col">
+                          {chatHistory.map((msg, idx) => (
+                              <div key={idx} className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}>
+                                  <span className={`text-[10px] uppercase font-bold tracking-widest mb-1 opacity-50 ${aesthetic.styles.subText}`}>
+                                      {msg.role === 'user' ? 'You' : persona.name}
+                                  </span>
+                                  <div className={`p-3 rounded-xl ${msg.role === 'user' ? `${aesthetic.styles.bg} border ${aesthetic.styles.border} ${aesthetic.styles.text}` : `bg-black/60 border ${aesthetic.styles.border} ${aesthetic.styles.highlight}`}`}>
+                                      <Markdown className="markdown-body prose-sm">{msg.content}</Markdown>
+                                  </div>
+                              </div>
+                          ))}
+                          {isChatting && (
+                              <div className="self-start flex flex-col max-w-[85%] items-start">
+                                 <span className={`text-[10px] uppercase font-bold tracking-widest mb-1 opacity-50 ${aesthetic.styles.subText}`}>{persona.name}</span>
+                                 <div className={`p-3 rounded-xl bg-black/60 border ${aesthetic.styles.border} ${aesthetic.styles.highlight} flex items-center gap-2`}>
+                                     <Loader2 size={14} className="animate-spin" /> Processing query...
+                                 </div>
+                              </div>
+                          )}
+                      </div>
+
+                      <form onSubmit={handleChatSubmit} className="relative flex items-center mt-2">
+                          <input 
+                              type="text" 
+                              value={chatInput}
+                              onChange={e => setChatInput(e.target.value)}
+                              placeholder={`Ask ${persona.name} about this site...`}
+                              className={`w-full bg-black/50 border ${aesthetic.styles.border} rounded-xl py-3 pl-4 pr-12 focus:outline-none focus:ring-1 ${aesthetic.styles.text} placeholder:opacity-50 text-sm`}
+                              disabled={isChatting}
+                          />
+                          <button 
+                             type="submit" 
+                             disabled={!chatInput.trim() || isChatting}
+                             className={`absolute right-2 p-2 rounded-lg ${chatInput.trim() && !isChatting ? aesthetic.styles.text + ' bg-white/10 hover:bg-white/20' : aesthetic.styles.subText + ' opacity-50'} transition-all`}
+                          >
+                             <Terminal size={14} />
+                          </button>
+                      </form>
+                  </div>
+              </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.div variants={itemVariants} className={`mt-6 text-center text-[11px] ${aesthetic.styles.subText} font-mono tracking-widest flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-6 opacity-60`}>
           <motion.button whileHover={{ scale: 1.1 }} onClick={handleCopyUrl} className="flex items-center gap-1.5 hover:text-current transition-colors" title="Copy URL">

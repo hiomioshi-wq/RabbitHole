@@ -373,6 +373,24 @@ export const findSimilarSites = async (
   }
 };
 
+export const generateTopicSummary = async (query: string, sites: Site[], model: AIModel): Promise<string> => {
+    const prompt = `
+        Synthesize a brief, educational summary about the topic: "${query}".
+        Use the following search results as context (but you may also use your own knowledge):
+        ${sites.map(s => `- ${s.title}: ${s.description}`).join('\n')}
+        
+        Keep it under 3-4 paragraphs. Use markdown formatting. Make it highly engaging and informative.
+    `;
+    
+    try {
+        const response = await executeWithRouter(prompt, model, 0, 'analysis', false);
+        return response.text || "Summary unavailable.";
+    } catch (e: any) {
+        console.error("Summary Error:", e);
+        return "Failed to generate summary.";
+    }
+};
+
 export const getSiteAnalysis = async (site: Site, persona: CuratorPersona, model: AIModel, thinkingBudget: number = 0, aesthetic: Aesthetic, timeEra: TimeEra): Promise<string> => {
     const timeContext = timeEra.id === 'all' ? "" : `The user is exploring the ${timeEra.name} era (${timeEra.range}).`;
 
@@ -428,3 +446,38 @@ export const generateSpeech = async (text: string, voiceName: string = 'Kore'): 
         throw new Error("Speech synthesis failed: " + e.message);
     }
 }
+
+export const chatWithPersona = async (
+    site: Site,
+    persona: CuratorPersona,
+    model: AIModel,
+    messageHistory: { role: 'user' | 'model', content: string }[],
+    newMessage: string
+): Promise<string> => {
+    const systemInstruction = `
+        ${persona.promptModifier}
+        
+        You are currently discussing the following website with the user:
+        Title: ${site.title}
+        URL: ${site.url}
+        Description: ${site.description}
+        Tags: ${site.tags.join(', ')}
+        
+        Keep your responses in character based on your persona. Be conversational, engaging, and insightful.
+        Keep replies relatively brief unless asked to elaborate.
+    `;
+    
+    let conversationText = systemInstruction + '\n\n';
+    messageHistory.forEach(msg => {
+       conversationText += `${msg.role === 'user' ? 'User' : 'You'}: ${msg.content}\n\n`;
+    });
+    conversationText += `User: ${newMessage}\nYou: `;
+
+    try {
+        const response = await executeWithRouter(conversationText, model, 0, 'chat', false);
+        return response.text || "I have nothing to say.";
+    } catch (e: any) {
+        console.error("Chat Error:", e);
+        throw new Error(e.message || "Failed to communicate with Persona.");
+    }
+};
