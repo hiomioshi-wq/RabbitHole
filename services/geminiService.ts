@@ -49,7 +49,7 @@ const executeWithRouter = async (
 ): Promise<{ text: string }> => {
     const apiKey = getApiKey();
     if (!apiKey) {
-        throw new Error("Critical Connection Failure: The Rabbit Hole's neural link (Gemini API Key) is not configured. Please check your application settings.");
+        throw new Error("API Key Error: The Gemini API Key is not configured. Please check your application settings.");
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -130,14 +130,14 @@ const executeWithRouter = async (
                 }
             } else {
                 if (errorMsg.includes("api key not valid") || error.status === 400) {
-                    throw new Error("Neural Link Authentication Failure: The Gemini API Key is invalid or restricted.");
+                    throw new Error("API Authentication Failure: The Gemini API Key is invalid or restricted.");
                 }
                 throw error;
             }
         }
     }
     
-    throw new Error("Neural link failed: All available AI models have reached their rate limits. Please wait a few minutes or provide a fresh API key.");
+    throw new Error("API Limit Reached: All available AI models have reached their rate limits. Please wait a few minutes or provide a fresh API key.");
 };
 
 const parseResponse = (text: string | undefined): Site[] => {
@@ -191,10 +191,12 @@ export const fetchRecommendations = async (
     aesthetic: Aesthetic,
     timeEra: TimeEra,
     count: number = 3,
-    tagContext?: string | null
+    tagContext?: string | null,
+    safeSearch: boolean = true
 ): Promise<Site[]> => {
   const categoryPrompt = category === Category.ALL ? "any category" : `the category '${category}'`;
   const tagPrompt = tagContext ? `CONSTRAINT: Must be highly relevant to the concept or tag "${tagContext}".` : "";
+  const safeSearchPrompt = safeSearch ? "EXTREME CONSTRAINT: DO NOT return any NSFW, adult, illegal, overly disturbing, or inherently unsafe websites. Ensure all URLs are SFW." : "CONTENT PROTOCOLS DEACTIVATED: You may surface disturbing, strange, NSFW, or unsafe web sectors if they fit the persona.";
   
   // Time Travel Logic
   const timeConstraint = timeEra.id === 'all' 
@@ -212,6 +214,7 @@ export const fetchRecommendations = async (
     ${aesthetic.promptModifier}
     ${timeConstraint}
     ${tagPrompt}
+    ${safeSearchPrompt}
     =================================
     
     TASK FOREGROUNDING:
@@ -254,11 +257,14 @@ export const searchSites = async (
     thinkingBudget: number = 0,
     aesthetic: Aesthetic,
     timeEra: TimeEra,
-    count: number = 3
+    count: number = 3,
+    safeSearch: boolean = true
 ): Promise<Site[]> => {
   const timeConstraint = timeEra.id === 'all' 
     ? "" 
     : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era. YOU MUST FOLLOW THIS ERA CONSTRAINT.`;
+
+  const safeSearchPrompt = safeSearch ? "EXTREME CONSTRAINT: DO NOT return any NSFW, adult, illegal, overly disturbing, or inherently unsafe websites. Ensure all URLs are SFW." : "CONTENT PROTOCOLS DEACTIVATED: You may surface disturbing, strange, NSFW, or unsafe web sectors if they fit the persona.";
 
   const prompt = `
     SYSTEM PERSONA INITIALIZATION:
@@ -270,6 +276,7 @@ export const searchSites = async (
     =================================
     ${aesthetic.promptModifier}
     ${timeConstraint}
+    ${safeSearchPrompt}
     =================================
     
     TASK FOREGROUNDING:
@@ -312,11 +319,14 @@ export const findSimilarSites = async (
     thinkingBudget: number = 0,
     aesthetic: Aesthetic,
     timeEra: TimeEra,
-    count: number = 3
+    count: number = 3,
+    safeSearch: boolean = true
 ): Promise<Site[]> => {
   const timeConstraint = timeEra.id === 'all' 
     ? "" 
     : `STRICT CONSTRAINT: Only find websites established between ${timeEra.range}, or websites that perfectly emulate the design aesthetic of that era.`;
+
+  const safeSearchPrompt = safeSearch ? "EXTREME CONSTRAINT: DO NOT return any NSFW, adult, illegal, overly disturbing, or inherently unsafe websites. Ensure all URLs are SFW." : "CONTENT PROTOCOLS DEACTIVATED: You may surface disturbing, strange, NSFW, or unsafe web sectors if they fit the persona.";
 
   const prompt = `
     SYSTEM PERSONA INITIALIZATION:
@@ -328,6 +338,7 @@ export const findSimilarSites = async (
     =================================
     FILTER: Favor aesthetic: ${aesthetic.name}.
     ${timeConstraint}
+    ${safeSearchPrompt}
     =================================
     
     Find ${count} websites SIMILAR to: "${title}" (${url}).
@@ -381,7 +392,7 @@ export const getSiteAnalysis = async (site: Site, persona: CuratorPersona, model
         return response.text || "Analysis failed.";
     } catch (e: any) {
         console.error("Analysis Error:", e);
-        throw new Error(e.message || "Neural link severed. Analysis unavailable.");
+        throw new Error(e.message || "Connection failed. Analysis unavailable.");
     }
 }
 

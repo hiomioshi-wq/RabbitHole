@@ -20,6 +20,8 @@ interface SiteCardProps {
   selectedTag: string | null;
   analysisText?: string | null;
   isAnalyzing?: boolean;
+  compactMode?: boolean;
+  autoSpeak?: boolean;
 }
 
 const ANALYSIS_PHRASES = [
@@ -27,7 +29,7 @@ const ANALYSIS_PHRASES = [
     "Extracting semantic nodes...",
     "Bypassing mainframe protocols...",
     "Calculating vibe resonance...",
-    "Synthesizing curator perspectives..."
+    "Synthesizing assistant insights..."
 ];
 
 export const SiteCard: React.FC<SiteCardProps> = React.memo(({ 
@@ -44,7 +46,9 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
   onAnalyze,
   selectedTag,
   analysisText,
-  isAnalyzing
+  isAnalyzing,
+  compactMode = false,
+  autoSpeak = false
 }) => {
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteText, setNoteText] = useState(site.fieldNote || '');
@@ -98,6 +102,19 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
       setIsPlayingNote(false);
       setIsSynthesizing(false);
   };
+
+  useEffect(() => {
+     let isActive = true;
+     if (autoSpeak && site.curatorNote) {
+         // Add a small delay so we don't start speaking immediately on fast scroll
+         const timeout = setTimeout(() => {
+             if (isActive) {
+                 handleSynthesizeNote();
+             }
+         }, 800);
+         return () => { isActive = false; clearTimeout(timeout); };
+     }
+  }, [site.id, autoSpeak]);
 
   const handleSynthesizeNote = async () => {
       if (isPlayingNote) {
@@ -154,7 +171,7 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const shareText = `🕳️ Down the RabbitHole 🕳️\n\nI discovered: ${site.title}\n"${site.description}"\n\n🎨 Vibe: ${aesthetic.name}\n🕰️ Era: ${era.name}\n🤖 Curator: ${persona.name}\n\nExplore it here: ${site.url}`;
+    const shareText = `🕳️ Down the RabbitHole 🕳️\n\nI discovered: ${site.title}\n"${site.description}"\n\n🎨 Vibe: ${aesthetic.name}\n🕰️ Era: ${era.name}\n🤖 Assistant: ${persona.name}\n\nExplore it here: ${site.url}`;
     
     if (navigator.share) {
         try {
@@ -241,7 +258,7 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className={`relative ${aesthetic.styles.cardBg} ${isBrutal ? 'border-4' : 'border'} ${aesthetic.styles.border} ${isBrutal ? 'rounded-none' : 'rounded-3xl'} p-6 sm:p-10 shadow-2xl overflow-hidden flex flex-col justify-between transform transition-all duration-500 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)]`}
+        className={`relative ${aesthetic.styles.cardBg} ${isBrutal ? 'border-4' : 'border'} ${aesthetic.styles.border} ${isBrutal ? 'rounded-none' : 'rounded-3xl'} ${compactMode ? 'p-4 sm:p-6' : 'p-6 sm:p-10'} shadow-2xl overflow-hidden flex flex-col justify-between transform transition-all duration-500 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)]`}
       >
         
         {/* Decorative Grid/Watermark */}

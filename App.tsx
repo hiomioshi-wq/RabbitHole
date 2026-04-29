@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type, Map, BookOpen, Film, Eye, Archive, NotebookPen, FolderArchive, Download, FolderPlus, Upload, Database, Globe } from 'lucide-react';
+import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type, Map, BookOpen, Film, Eye, Archive, NotebookPen, FolderArchive, Download, FolderPlus, Upload, Database, Globe, Settings2, ShieldAlert, Bug, Minimize2, ListOrdered, HardDrive, Focus, Volume1 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Site, Category, FetchStatus, CuratorPersona, AIModel, Aesthetic, TimeEra, Expedition } from './types';
 import { INITIAL_SITES, CATEGORY_COLORS, CURATOR_PERSONAS, AI_MODELS, AESTHETICS, TIME_ERAS } from './constants';
 import { fetchRecommendations, searchSites, findSimilarSites, getSiteAnalysis } from './services/geminiService';
+import { fetchFromWikiAPI } from './services/wikiService';
 import { SiteCard } from './components/SiteCard';
 
 // --- Global Storage Helper for Sound ---
@@ -193,9 +194,21 @@ const App: React.FC = () => {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isNeuralLinkModalOpen, setIsNeuralLinkModalOpen] = useState(false);
+  const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [submittedSites, setSubmittedSites] = useLocalStorage<any[]>('rabbithole_submissions', []);
   const [soundEnabled, setSoundEnabled] = useLocalStorage('rabbithole_sound', true);
+  
+  // Advanced Settings State
+  const [autoSpeak, setAutoSpeak] = useLocalStorage('rabbithole_autospeak', false);
+  const [compactMode, setCompactMode] = useLocalStorage('rabbithole_compact', false);
+  const [safeSearch, setSafeSearch] = useLocalStorage('rabbithole_safesearch', true);
+  const [showDebugStats, setShowDebugStats] = useLocalStorage('rabbithole_debug', false);
+  const [reducedMotion, setReducedMotion] = useLocalStorage('rabbithole_reducedmotion', false);
+  const [maxQueueDepth, setMaxQueueDepth] = useLocalStorage('rabbithole_queuedepth', 10);
+  const [dataSource, setDataSource] = useLocalStorage<'gemini' | 'wikipedia' | 'miraheze'>('rabbithole_datasource', 'gemini');
+  const [searchEngineMode, setSearchEngineMode] = useLocalStorage('rabbithole_searchengine', false);
+  
   const [autoStumble, setAutoStumble] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -254,7 +267,7 @@ const App: React.FC = () => {
         md += `## ${site.title}\n`;
         md += `URL: ${site.url}\n`;
         md += `Category: ${site.category}\n\n`;
-        md += `### Curator's Record\n${site.curatorNote || 'No record.'}\n\n`;
+        md += `### Assistant's Note\n${site.curatorNote || 'No record.'}\n\n`;
         if (site.fieldNote) {
             md += `### Personal Observations\n${site.fieldNote}\n\n`;
         }
@@ -354,12 +367,21 @@ const App: React.FC = () => {
 
   const fetchMoreSites = useCallback(async (category: Category) => {
     try {
-      const newSites = await fetchRecommendations(category, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 25, selectedTag);
-      setSiteQueue(prev => [...prev, ...newSites]);
+      let newSites: Site[] = [];
+      if (dataSource === 'wikipedia' || dataSource === 'miraheze') {
+          newSites = await fetchFromWikiAPI(dataSource, maxQueueDepth, selectedTag);
+      } else {
+          newSites = await fetchRecommendations(category, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, maxQueueDepth, selectedTag, safeSearch);
+      }
+      
+      setSiteQueue(prev => {
+        const combined = [...prev, ...newSites];
+        return combined.slice(0, maxQueueDepth);
+      });
     } catch (e) {
       console.warn("Background fetch failed", e);
     }
-  }, [activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, selectedTag]); 
+  }, [activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, selectedTag, maxQueueDepth, safeSearch, dataSource]); 
 
   const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
     if (e) e.preventDefault();
@@ -378,7 +400,12 @@ const App: React.FC = () => {
     setSearchResults(null);
 
     try {
-      let results = await searchSites(q, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 15); // Adjust to 15 for grids
+      let results: Site[] = [];
+      if (dataSource === 'wikipedia' || dataSource === 'miraheze') {
+          results = await fetchFromWikiAPI(dataSource, 15, q);
+      } else {
+          results = await searchSites(q, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 15, safeSearch);
+      }
       
       // FALLBACK
       if (results.length === 0) {
@@ -402,7 +429,7 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      setGlobalError(err.message || "An unknown anomaly occurred in the neural link.");
+      setGlobalError(err.message || "An unknown anomaly occurred during lookup.");
       setStatus('error');
     }
   };
@@ -430,7 +457,13 @@ const App: React.FC = () => {
     setSearchQuery(`Similar to: ${site.title}`);
     
     try {
-      let results = await findSimilarSites(site.url, site.title, activeModel, thinkingBudget, activeAesthetic, activeEra, 25);
+      let results: Site[] = [];
+      if (dataSource === 'wikipedia' || dataSource === 'miraheze') {
+          // just pull random entries for 'similar' if using basic wiki API
+          results = await fetchFromWikiAPI(dataSource, maxQueueDepth, site.tags[0] || site.title);
+      } else {
+          results = await findSimilarSites(site.url, site.title, activeModel, thinkingBudget, activeAesthetic, activeEra, maxQueueDepth, safeSearch);
+      }
       
       if (results.length === 0) {
           const localResults = INITIAL_SITES.filter(s => 
@@ -453,7 +486,7 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
         console.error(err);
-        setGlobalError(err.message || "An unknown anomaly occurred in the neural link.");
+        setGlobalError(err.message || "An unknown anomaly occurred during lookup.");
         setStatus('error');
     }
   };
@@ -553,7 +586,12 @@ const App: React.FC = () => {
     }
 
     try {
-      const newSites = await fetchRecommendations(selectedCategory, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, 25, selectedTag);
+      let newSites: Site[] = [];
+      if (dataSource === 'wikipedia' || dataSource === 'miraheze') {
+          newSites = await fetchFromWikiAPI(dataSource, maxQueueDepth, selectedTag);
+      } else {
+          newSites = await fetchRecommendations(selectedCategory, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, maxQueueDepth, selectedTag, safeSearch);
+      }
       if (newSites.length > 0) {
         const first = newSites[0];
         const rest = newSites.slice(1);
@@ -572,25 +610,25 @@ const App: React.FC = () => {
       }
       fallbackStumble();
     }
-  }, [selectedCategory, selectedTag, siteQueue, fallbackStumble, fetchMoreSites, addToHistory, isSearchActive, searchQuery, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra]); // handleSearch intentionally omitted to prevent circular dependency unless memoized properly, but we can safely call it using the current state values inside the callback.
+  }, [selectedCategory, selectedTag, siteQueue, fallbackStumble, fetchMoreSites, addToHistory, isSearchActive, searchQuery, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra, safeSearch, maxQueueDepth, dataSource]); // handleSearch intentionally omitted to prevent circular dependency unless memoized properly, but we can safely call it using the current state values inside the callback.
 
   useEffect(() => {
     setSiteQueue([]);
   }, [activePersona, activeModel, activeAesthetic, activeEra]);
 
   const NeuralLoading = () => {
-    let title = "DECRYPTING";
-    let subtitle = `Cross-referencing ${activeEra.name} archives`;
+    let title = "GATHERING";
+    let subtitle = `Browsing ${activeEra.name} websites`;
     
     if (loadingAction === 'search') {
         title = "SEARCHING";
-        subtitle = `Querying neural nets for "${searchQuery}"`;
+        subtitle = `Searching for "${searchQuery}"`;
     } else if (loadingAction === 'similar') {
         title = "ANALYZING";
-        subtitle = `Finding patterns matching current entity`;
+        subtitle = `Finding similar websites`;
     } else if (loadingAction === 'stumble') {
-        title = "TRAVERSING";
-        subtitle = `Locating next node in ${selectedCategory !== Category.ALL ? selectedCategory : 'the void'}`;
+        title = "EXPLORING";
+        subtitle = `Finding a suggestion in ${selectedCategory !== Category.ALL ? selectedCategory : 'all categories'}`;
     }
 
     return (
@@ -830,8 +868,12 @@ const App: React.FC = () => {
                 </span>
             </div>
 
-            <button onClick={() => setShowConfig(!showConfig)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
+            <button onClick={() => setShowConfig(!showConfig)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`} title="Assistant Configuration">
                  <Settings size={18} />
+             </button>
+
+            <button onClick={() => setIsAdvancedSettingsOpen(!isAdvancedSettingsOpen)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`} title="Advanced Settings">
+                 <Settings2 size={18} />
              </button>
              
              <AnimatePresence>
@@ -924,7 +966,7 @@ const App: React.FC = () => {
                          {/* Persona Selector */}
                          <div className={`mb-8 text-left`}>
                              <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pr-2`}>
-                                <Terminal size={12} /> 03. Curator Personas
+                                <Terminal size={12} /> 03. Assistant Personas
                                 <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
                              </div>
                              <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
@@ -1019,7 +1061,7 @@ const App: React.FC = () => {
                             </motion.button>
                             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsNeuralLinkModalOpen(true)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
                                <Terminal size={16} />
-                               <span className="text-[10px] font-mono uppercase tracking-widest leading-none text-center">Neural Link</span>
+                               <span className="text-[10px] font-mono uppercase tracking-widest leading-none text-center">Assistant Setup</span>
                             </motion.button>
                             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsHelpModalOpen(true)} className={`p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex flex-col items-center gap-2 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
                                <HelpCircle size={16} />
@@ -1031,11 +1073,181 @@ const App: React.FC = () => {
              )}
              </AnimatePresence>
 
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setIsNeuralLinkModalOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 hidden sm:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`} title="Sync Neural Link">
+             <AnimatePresence>
+             {isAdvancedSettingsOpen && (
+                 <>
+                     <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }} 
+                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" 
+                        onClick={() => setIsAdvancedSettingsOpen(false)}
+                     ></motion.div>
+                     <motion.div 
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        className="absolute top-[120%] right-0 w-[90vw] max-w-[420px] glass-panel rounded-2xl shadow-2xl z-50 p-6 overscroll-contain max-h-[80vh] overflow-y-auto custom-scrollbar border-white/20 backdrop-blur-3xl bg-black/80 origin-top-right text-left"
+                     >
+                         <div className="flex justify-between items-center mb-6 text-left">
+                             <div className="flex flex-col">
+                                <h3 className={`font-display font-medium text-xs tracking-widest uppercase ${activeAesthetic.styles.subText}`}>Deep Utilities</h3>
+                                <h2 className={`text-xl font-bold font-display ${activeAesthetic.styles.text}`}>Advanced Systems</h2>
+                             </div>
+                             <button onClick={() => setIsAdvancedSettingsOpen(false)} className={`${activeAesthetic.styles.subText} hover:text-white p-2`}><X size={20}/></button>
+                         </div>
+
+                         <div className="space-y-6">
+                            {/* Feature Toggles */}
+                            <div>
+                                <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-3 flex items-center gap-2 pr-2`}>
+                                    <Settings2 size={12}/> Global Toggles
+                                    <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className={`flex items-center justify-between p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 cursor-pointer hover:bg-white/10 transition-colors`}>
+                                        <div className="flex items-center gap-3">
+                                            <ShieldAlert size={16} className={safeSearch ? "text-emerald-400" : "text-red-400"} />
+                                            <div>
+                                                <div className={`text-sm font-bold ${activeAesthetic.styles.text}`}>Safe Search Mode</div>
+                                                <div className={`text-[9px] font-mono opacity-70 ${activeAesthetic.styles.subText}`}>Filter out unsafe anomalies (highly recommended)</div>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" checked={safeSearch} onChange={(e) => setSafeSearch(e.target.checked)} className="accent-current bg-transparent w-4 h-4 cursor-pointer" />
+                                    </label>
+                                    <label className={`flex items-center justify-between p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 cursor-pointer hover:bg-white/10 transition-colors`}>
+                                        <div className="flex items-center gap-3">
+                                            <Minimize2 size={16} className={compactMode ? activeAesthetic.styles.accent : activeAesthetic.styles.subText} />
+                                            <div>
+                                                <div className={`text-sm font-bold ${activeAesthetic.styles.text}`}>Compact UI View</div>
+                                                <div className={`text-[9px] font-mono opacity-70 ${activeAesthetic.styles.subText}`}>Reduce padding & condense spatial data</div>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" checked={compactMode} onChange={(e) => setCompactMode(e.target.checked)} className="accent-current bg-transparent w-4 h-4 cursor-pointer" />
+                                    </label>
+                                    <label className={`flex items-center justify-between p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 cursor-pointer hover:bg-white/10 transition-colors`}>
+                                        <div className="flex items-center gap-3">
+                                            <Ghost size={16} className={reducedMotion ? activeAesthetic.styles.accent : activeAesthetic.styles.subText} />
+                                            <div>
+                                                <div className={`text-sm font-bold ${activeAesthetic.styles.text}`}>Reduced Motion</div>
+                                                <div className={`text-[9px] font-mono opacity-70 ${activeAesthetic.styles.subText}`}>Disable intense animations & parallax</div>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" checked={reducedMotion} onChange={(e) => setReducedMotion(e.target.checked)} className="accent-current bg-transparent w-4 h-4 cursor-pointer" />
+                                    </label>
+                                    <label className={`flex items-center justify-between p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 cursor-pointer hover:bg-white/10 transition-colors`}>
+                                        <div className="flex items-center gap-3">
+                                            <Bug size={16} className={showDebugStats ? activeAesthetic.styles.accent : activeAesthetic.styles.subText} />
+                                            <div>
+                                                <div className={`text-sm font-bold ${activeAesthetic.styles.text}`}>Debug Data Overlay</div>
+                                                <div className={`text-[9px] font-mono opacity-70 ${activeAesthetic.styles.subText}`}>Show backend metrics and LLM traces</div>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" checked={showDebugStats} onChange={(e) => setShowDebugStats(e.target.checked)} className="accent-current bg-transparent w-4 h-4 cursor-pointer" />
+                                    </label>
+                                    <label className={`flex items-center justify-between p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 cursor-pointer hover:bg-white/10 transition-colors`}>
+                                        <div className="flex items-center gap-3">
+                                            <Volume1 size={16} className={autoSpeak ? activeAesthetic.styles.accent : activeAesthetic.styles.subText} />
+                                            <div>
+                                                <div className={`text-sm font-bold ${activeAesthetic.styles.text}`}>Auto-Speak Notes</div>
+                                                <div className={`text-[9px] font-mono opacity-70 ${activeAesthetic.styles.subText}`}>Synthesize assistant notes via TTS on arrival</div>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" checked={autoSpeak} onChange={(e) => setAutoSpeak(e.target.checked)} className="accent-current bg-transparent w-4 h-4 cursor-pointer" />
+                                    </label>
+                                    <label className={`flex items-center justify-between p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 cursor-pointer hover:bg-white/10 transition-colors`}>
+                                        <div className="flex items-center gap-3">
+                                            <Search size={16} className={searchEngineMode ? activeAesthetic.styles.accent : activeAesthetic.styles.subText} />
+                                            <div>
+                                                <div className={`text-sm font-bold ${activeAesthetic.styles.text}`}>Search Engine Mode</div>
+                                                <div className={`text-[9px] font-mono opacity-70 ${activeAesthetic.styles.subText}`}>Make UI behave like a search engine completely</div>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" checked={searchEngineMode} onChange={(e) => setSearchEngineMode(e.target.checked)} className="accent-current bg-transparent w-4 h-4 cursor-pointer" />
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Data Source Settings */}
+                            <div>
+                                <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-3 flex items-center gap-2 pr-2 mt-4`}>
+                                    <Database size={12}/> Data Source
+                                    <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
+                                </div>
+                                <div className="space-y-2">
+                                     <select
+                                        value={dataSource}
+                                        onChange={(e) => setDataSource(e.target.value as 'gemini' | 'wikipedia' | 'miraheze')}
+                                        className={`w-full p-3 rounded-lg border ${activeAesthetic.styles.border} bg-white/5 hover:bg-white/10 transition-colors text-sm font-bold ${activeAesthetic.styles.text} focus:outline-none focus:ring-1 focus:ring-amber-500`}
+                                     >
+                                        <option value="gemini" className="bg-zinc-900">Gemini AI (Creative Recommendations)</option>
+                                        <option value="wikipedia" className="bg-zinc-900">Wikipedia (Encyclopedic Data)</option>
+                                        <option value="miraheze" className="bg-zinc-900">Miraheze (Community Wikis)</option>
+                                     </select>
+                                     <p className={`mt-2 text-[9px] font-mono opacity-70 ${activeAesthetic.styles.subText}`}>Choose where the recommendations come from.</p>
+                                </div>
+                            </div>
+
+                            {/* Queue Settings */}
+                            <div>
+                                <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-3 flex items-center gap-2 pr-2`}>
+                                    <ListOrdered size={12}/> Suggestion Queue
+                                    <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
+                                </div>
+                                <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div className={`text-[10px] font-mono font-bold ${activeAesthetic.styles.subText}`}>Max Queue Length</div>
+                                        <div className={`text-[10px] font-mono font-black ${activeAesthetic.styles.accent}`}>{maxQueueDepth} Sites</div>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="2" 
+                                        max="50" 
+                                        step="1"
+                                        value={maxQueueDepth}
+                                        onChange={(e) => setMaxQueueDepth(Number(e.target.value))}
+                                        className="w-full h-1 bg-gray-700/50 rounded-lg appearance-none cursor-pointer accent-current"
+                                    />
+                                    <p className={`mt-3 text-[9px] ${activeAesthetic.styles.subText} italic opacity-60 font-mono text-center leading-relaxed`}>
+                                        Larger queues use more system memory and bandwidth to fetch suggestions in the background.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            {/* Danger Zone */}
+                            <div>
+                                <div className={`text-[10px] font-mono ${activeAesthetic.styles.subText} uppercase tracking-[0.2em] mb-3 flex items-center gap-2 pr-2 mt-4`}>
+                                    <AlertCircle size={12} className="text-red-500" /> Data Management
+                                    <div className="h-[1px] flex-1 bg-white/10 ml-2"></div>
+                                </div>
+                                <div className="space-y-2">
+                                     <motion.button 
+                                        whileHover={{ scale: 1.02 }} 
+                                        whileTap={{ scale: 0.98 }} 
+                                        onClick={() => {
+                                            if(window.confirm('Wipe all data? This will clear history, bookmarks, and settings. Irreversible.')) {
+                                                localStorage.clear();
+                                                window.location.reload();
+                                            }
+                                        }} 
+                                        className={`w-full flex items-center justify-center gap-2 p-3 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-500 text-[10px] font-mono uppercase tracking-widest font-bold`}
+                                     >
+                                        <Trash2 size={14} /> Reset All Data
+                                     </motion.button>
+                                </div>
+                            </div>
+                         </div>
+                     </motion.div>
+                 </>
+             )}
+             </AnimatePresence>
+
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setIsNeuralLinkModalOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 hidden sm:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`} title="Assistant Setup">
                <BrainCircuit size={18} />
             </motion.button>
 
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setIsSidebarOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 hidden sm:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text} relative`} title="Vault of Burrows">
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setIsSidebarOpen(true)} className={`p-2 rounded-full transition-colors glass-panel hover:bg-white/10 hidden sm:block ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text} relative`} title="Bookmarks & Collections">
               <Rabbit size={18} />
               {favorites.length > 0 && <span className="absolute top-0 right-0 w-2 h-2 bg-pink-500 rounded-full animate-pulse"></span>}
             </motion.button>
@@ -1051,8 +1263,8 @@ const App: React.FC = () => {
       <main className="flex-1 relative flex flex-col items-center justify-center p-4 overflow-hidden">
         
         {/* Decorative Blobs - Colored based on aesthetic */}
-        <div className={`absolute top-0 right-[10%] w-[40rem] h-[40rem] rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob ${activeAesthetic.id === 'solar' ? 'bg-yellow-500' : activeAesthetic.id === 'vapor' ? 'bg-cyan-500' : activeAesthetic.id === 'brutal' ? 'bg-gray-400' : 'bg-purple-600'}`}></div>
-        <div className={`absolute -bottom-[20%] left-[-10%] w-[50rem] h-[50rem] rounded-full mix-blend-screen filter blur-[120px] opacity-10 animate-blob animation-delay-4000 ${activeAesthetic.id === 'solar' ? 'bg-emerald-500' : activeAesthetic.id === 'vapor' ? 'bg-pink-500' : activeAesthetic.id === 'brutal' ? 'bg-gray-600' : 'bg-indigo-600'}`}></div>
+        <div className={`absolute top-0 right-[10%] w-[40rem] h-[40rem] rounded-full mix-blend-screen filter blur-[100px] opacity-20 ${!reducedMotion ? 'animate-blob' : ''} ${activeAesthetic.id === 'solar' ? 'bg-yellow-500' : activeAesthetic.id === 'vapor' ? 'bg-cyan-500' : activeAesthetic.id === 'brutal' ? 'bg-gray-400' : 'bg-purple-600'}`}></div>
+        <div className={`absolute -bottom-[20%] left-[-10%] w-[50rem] h-[50rem] rounded-full mix-blend-screen filter blur-[120px] opacity-10 ${!reducedMotion ? 'animate-blob animation-delay-4000' : ''} ${activeAesthetic.id === 'solar' ? 'bg-emerald-500' : activeAesthetic.id === 'vapor' ? 'bg-pink-500' : activeAesthetic.id === 'brutal' ? 'bg-gray-600' : 'bg-indigo-600'}`}></div>
 
         {showWelcome ? (
           <AnimatePresence mode="wait">
@@ -1061,7 +1273,7 @@ const App: React.FC = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, y: -50 }}
-            className="flex flex-col items-center justify-center w-full max-w-7xl px-4 pt-16 z-10 min-h-[85vh]"
+            className={`flex flex-col items-center justify-center w-full max-w-7xl px-4 pt-16 z-10 ${searchEngineMode ? 'min-h-[60vh]' : 'min-h-[85vh]'}`}
           >
              {/* Huge Cinematic Hero */}
              <motion.h1 
@@ -1070,9 +1282,11 @@ const App: React.FC = () => {
                 Rabbit<span className={activeAesthetic.styles.accent}>Hole</span>.
              </motion.h1>
 
-             <motion.p className={`mt-8 text-xl md:text-2xl font-light ${activeAesthetic.styles.subText} text-center max-w-2xl mix-blend-screen`}>
-                 Descend into the obscure. An AI-curated index of the internet’s finest buried anomalies from {activeEra.name}.
-             </motion.p>
+             {!searchEngineMode && (
+                 <motion.p className={`mt-8 text-xl md:text-2xl font-light ${activeAesthetic.styles.subText} text-center max-w-2xl mix-blend-screen`}>
+                     Descend into the obscure. An AI-curated index of the internet’s finest buried anomalies from {activeEra.name}.
+                 </motion.p>
+             )}
              
              {/* Giant Search Command */}
              <motion.div className="w-full max-w-3xl mt-12 relative z-20">
@@ -1083,55 +1297,57 @@ const App: React.FC = () => {
                         <input 
                             ref={searchInputRef}
                             type="text"
-                            placeholder={`Ask ${activePersona.name} to find...`}
+                            placeholder={searchEngineMode ? 'Search the web...' : `Ask ${activePersona.name} to find...`}
                             className={`flex-1 bg-transparent border-none text-xl md:text-2xl ${activeAesthetic.styles.text} outline-none placeholder-white/30`}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="submit" className={`hidden md:block py-3 px-8 rounded-full font-bold ml-4 transition-transform text-white ${activeAesthetic.id === 'solar' ? 'bg-emerald-600' : activeAesthetic.id === 'brutal' ? 'bg-lime-500 text-black' : 'bg-indigo-600'}`}>
-                           Initiate
+                           {searchEngineMode ? 'Search' : 'Initiate'}
                         </motion.button>
                     </div>
                 </form>
              </motion.div>
 
              {/* Quick Filters Grid (Replaces old clunky buttons) */}
-             <motion.div className="mt-16 w-full max-w-5xl">
-                <div className="flex items-center justify-between mb-6">
-                   <h3 className={`font-mono text-xs tracking-[0.3em] uppercase ${activeAesthetic.styles.subText}`}>Navigation Nodes</h3>
-                   <button onClick={handleStumble} className={`flex items-center gap-2 text-xs font-mono font-bold tracking-widest ${activeAesthetic.styles.accent} hover:text-white transition-colors`}>
-                      <Sparkles size={14}/> I'm Feeling Lucky
-                   </button>
-                </div>
-                
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                   <AnimatePresence>
-                   {COLLECTIONS.map((cat, i) => (
-                      <motion.button 
-                         layout="position"
-                         key={cat.id}
-                         onClick={() => handleSearch(undefined, cat.query)}
-                         initial={{ opacity: 0, scale: 0.8, y: 30 }}
-                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                         exit={{ opacity: 0, scale: 0.8, y: -30 }}
-                         transition={{ delay: i * 0.05, type: 'spring', bounce: 0.4 }}
-                         whileHover={{ scale: 1.05, y: -5 }}
-                         whileTap={{ scale: 0.95 }}
-                         className="glass-panel rounded-3xl p-6 flex flex-col items-start gap-4 hover:bg-white/10 transition-all group overflow-hidden relative"
-                      >
-                         <div className={`absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-white/20 transition-all ${activeAesthetic.styles.text}`}></div>
-                         <div className={`p-4 rounded-xl glass-panel ${activeAesthetic.styles.text} group-hover:scale-110 transition-transform shadow-2xl`}>
-                            <cat.icon size={28} />
-                         </div>
-                         <div>
-                            <span className={`block font-bold text-lg ${activeAesthetic.styles.text} tracking-tight`}>{cat.label}</span>
-                            <span className={`block text-[10px] font-mono mt-1 ${activeAesthetic.styles.subText} uppercase line-clamp-1`}>{cat.query}</span>
-                         </div>
-                      </motion.button>
-                   ))}
-                   </AnimatePresence>
-                </div>
-             </motion.div>
+             {!searchEngineMode && (
+                 <motion.div className="mt-16 w-full max-w-5xl">
+                    <div className="flex items-center justify-between mb-6">
+                       <h3 className={`font-mono text-xs tracking-[0.3em] uppercase ${activeAesthetic.styles.subText}`}>Categories</h3>
+                       <button onClick={handleStumble} className={`flex items-center gap-2 text-xs font-mono font-bold tracking-widest ${activeAesthetic.styles.accent} hover:text-white transition-colors`}>
+                          <Sparkles size={14}/> I'm Feeling Lucky
+                       </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                       <AnimatePresence>
+                       {COLLECTIONS.map((cat, i) => (
+                          <motion.button 
+                             layout="position"
+                             key={cat.id}
+                             onClick={() => handleSearch(undefined, cat.query)}
+                             initial={{ opacity: 0, scale: 0.8, y: 30 }}
+                             animate={{ opacity: 1, scale: 1, y: 0 }}
+                             exit={{ opacity: 0, scale: 0.8, y: -30 }}
+                             transition={{ delay: i * 0.05, type: 'spring', bounce: 0.4 }}
+                             whileHover={{ scale: 1.05, y: -5 }}
+                             whileTap={{ scale: 0.95 }}
+                             className="glass-panel rounded-3xl p-6 flex flex-col items-start gap-4 hover:bg-white/10 transition-all group overflow-hidden relative"
+                          >
+                             <div className={`absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-white/20 transition-all ${activeAesthetic.styles.text}`}></div>
+                             <div className={`p-4 rounded-xl glass-panel ${activeAesthetic.styles.text} group-hover:scale-110 transition-transform shadow-2xl`}>
+                                <cat.icon size={28} />
+                             </div>
+                             <div>
+                                <span className={`block font-bold text-lg ${activeAesthetic.styles.text} tracking-tight`}>{cat.label}</span>
+                                <span className={`block text-[10px] font-mono mt-1 ${activeAesthetic.styles.subText} uppercase line-clamp-1`}>{cat.query}</span>
+                             </div>
+                          </motion.button>
+                       ))}
+                       </AnimatePresence>
+                    </div>
+                 </motion.div>
+             )}
           </motion.div>
           </AnimatePresence>
         ) : (
@@ -1218,7 +1434,7 @@ const App: React.FC = () => {
                                    <ExternalLink size={12} /> {new URL(site.url).hostname}
                                </div>
                                <div className={`opacity-0 group-hover:opacity-100 transition-opacity text-[10px] uppercase font-bold tracking-widest ${activeAesthetic.styles.accent}`}>
-                                   Access Node &rarr;
+                                   View Site &rarr;
                                </div>
                            </div>
                         </motion.div>
@@ -1259,6 +1475,8 @@ const App: React.FC = () => {
                         selectedTag={selectedTag}
                         analysisText={currentAnalysis}
                         isAnalyzing={isAnalyzing}
+                        compactMode={compactMode}
+                        autoSpeak={autoSpeak}
                      />
                    </motion.div>
                  </AnimatePresence>
@@ -1722,10 +1940,10 @@ const App: React.FC = () => {
               </motion.button>
 
               <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} mt-4 mb-2 text-center`}>
-                Neural Link Interface
+                Assistant Configuration
               </h2>
               <p className={`text-xs ${activeAesthetic.styles.subText} text-center mb-6 leading-relaxed`}>
-                Establish a direct uplink to the Gemini Neural Network. Your API key is stored locally and used for real-time site discovery.
+                Enter your Gemini API key below to enable personalized recommendations.
               </p>
 
               <form onSubmit={(e) => {
@@ -1769,7 +1987,7 @@ const App: React.FC = () => {
                     whileTap={{ scale: 0.98 }}
                     className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-indigo-500/20 transition-all ${activeAesthetic.id === 'solar' ? 'bg-yellow-500 text-black' : 'bg-indigo-600 text-white'}`}
                  >
-                    Sync Neural Link
+                    Save Configuration
                  </motion.button>
 
                  <div className="text-center pt-2">
@@ -1886,6 +2104,42 @@ const App: React.FC = () => {
               </div>
           </motion.div>
       )}
+      </AnimatePresence>
+
+      {/* Debug Overlay */}
+      <AnimatePresence>
+          {showDebugStats && (
+              <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="fixed bottom-20 left-4 z-50 glass-panel border-white/20 p-4 rounded-lg flex flex-col gap-2 min-w-[200px] pointer-events-none text-left backdrop-blur-md"
+              >
+                  <div className={`text-[9px] font-mono font-bold tracking-widest ${activeAesthetic.styles.accent} flex items-center gap-2 mb-2 uppercase`}>
+                      <Bug size={10} /> Debug Data
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] font-mono gap-4">
+                      <span className={activeAesthetic.styles.subText}>LATENCY</span>
+                      <span className={activeAesthetic.styles.text}>{thinkingBudget > 0 ? '>2000MS' : 'NORMAL'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] font-mono gap-4">
+                      <span className={activeAesthetic.styles.subText}>QUEUE DEPTH</span>
+                      <span className={activeAesthetic.styles.text}>{siteQueue.length} / {maxQueueDepth}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] font-mono gap-4">
+                      <span className={activeAesthetic.styles.subText}>MEMORY USAGE</span>
+                      <span className={activeAesthetic.styles.text}>{((history.length + favorites.length) * 0.4).toFixed(1)}MB</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] font-mono gap-4">
+                      <span className={activeAesthetic.styles.subText}>UI MODE</span>
+                      <span className={activeAesthetic.styles.text}>{compactMode ? 'COMPACT' : 'FULL'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] font-mono gap-4">
+                      <span className={activeAesthetic.styles.subText}>SAFE SEARCH</span>
+                      <span className={activeAesthetic.styles.text}>{safeSearch ? 'ON' : 'OFF'}</span>
+                  </div>
+              </motion.div>
+          )}
       </AnimatePresence>
 
       {/* System Status Footer */}
