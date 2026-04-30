@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type, Map, BookOpen, Film, Eye, Archive, NotebookPen, FolderArchive, Download, FolderPlus, Upload, Database, Globe, Settings2, ShieldAlert, Bug, Minimize2, ListOrdered, HardDrive, Focus, Volume1 } from 'lucide-react';
+import { Rabbit, History, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Heart, Tag, Search, Ghost, Music, Gamepad2, Palette, Monitor, Cpu, ChevronDown, Zap, Gauge, Clock, SwatchBook, BrainCircuit, Dices, Plus, Volume2, VolumeX, Play, Trash2, HelpCircle, Settings, Shuffle, PaintRoller, Terminal, User, Type, Map, BookOpen, Film, Eye, Archive, NotebookPen, FolderArchive, Download, FolderPlus, Upload, Database, Globe, Settings2, ShieldAlert, Bug, Minimize2, ListOrdered, HardDrive, Focus, Volume1, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
-import { Site, Category, FetchStatus, CuratorPersona, AIModel, Aesthetic, TimeEra, Expedition } from './types';
+import { Site, Category, FetchStatus, CuratorPersona, AIModel, Aesthetic, TimeEra, Expedition, UserStats } from './types';
 import { INITIAL_SITES, CATEGORY_COLORS, CURATOR_PERSONAS, AI_MODELS, AESTHETICS, TIME_ERAS } from './constants';
 import { fetchRecommendations, searchSites, findSimilarSites, getSiteAnalysis, generateTopicSummary } from './services/geminiService';
 import { fetchFromWikiAPI } from './services/wikiService';
@@ -109,6 +109,10 @@ const COLLECTIONS = [
   { id: 'ai', label: 'AI Wonders', icon: BrainCircuit, query: 'best obscure ai experiments and tools' },
   { id: 'search', label: 'Web Search', icon: Search, query: 'obscure search engines and directories' },
   { id: 'games', label: 'Games', icon: Dices, query: 'weird obscure browser games' },
+  { id: 'portals', label: 'Web Portals', icon: Globe, query: 'obscure web rings directories and portals' },
+  { id: 'hardware', label: 'Hardware', icon: HardDrive, query: 'weird hardware projects protocols and networking' },
+  { id: 'community', label: 'Forums', icon: User, query: 'niche communities strange forums and message boards' },
+  { id: 'creepypasta', label: 'Creepypasta', icon: ShieldAlert, query: 'creepypasta args internet mysteries and urban legends' }
 ];
 
 const MatrixRain: React.FC = () => {
@@ -182,6 +186,16 @@ const App: React.FC = () => {
   
   const [searchResults, setSearchResults] = useState<Site[] | null>(null);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [userStats, setUserStats] = useLocalStorage<UserStats>('rabbithole_userstats', {
+    xp: 0,
+    level: 1,
+    rankTitle: 'Lost Wanderer',
+    sitesDiscovered: 0,
+    expeditionsCreated: 0,
+    analysesRun: 0
+  });
+
+  const [isFocusMode, setIsFocusMode] = useState(false);
   const [viewMode, setViewMode] = useState<'classic' | 'graph'>('classic');
   const [showConfig, setShowConfig] = useState(false);
   const [loadingAction, setLoadingAction] = useState<'search' | 'stumble' | 'similar'>('stumble');
@@ -214,13 +228,15 @@ const App: React.FC = () => {
   const [searchEngineMode, setSearchEngineMode] = useLocalStorage('rabbithole_searchengine', false);
   
   const [autoStumble, setAutoStumble] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [levelUpMessage, setLevelUpMessage] = useState<{ level: number, rank: string } | null>(null);
 
   const addToHistory = (site: Site) => {
     setHistory(prev => {
       if (prev.length > 0 && prev[0].id === site.id) return prev;
       return [site, ...prev].slice(0, 50);
     });
+    awardXP(10);
+    setUserStats(prev => ({ ...prev, sitesDiscovered: prev.sitesDiscovered + 1 }));
   };
 
   const handleBack = () => {
@@ -240,6 +256,36 @@ const App: React.FC = () => {
         return prev.filter(s => s.id !== site.id);
       }
       return [site, ...prev];
+    });
+  };
+
+  const awardXP = (amount: number) => {
+    setUserStats((prev: UserStats) => {
+      const newXp = prev.xp + amount;
+      const newLevel = Math.floor(Math.sqrt(newXp / 100)) + 1;
+      let newRank = prev.rankTitle;
+      
+      if (newLevel >= 50) newRank = 'Architect of the Void';
+      else if (newLevel >= 40) newRank = 'Grand Curator';
+      else if (newLevel >= 30) newRank = 'Digital Archaeologist';
+      else if (newLevel >= 20) newRank = 'Web Historian';
+      else if (newLevel >= 10) newRank = 'Seasoned Navigator';
+      else if (newLevel >= 5) newRank = 'Curious Explorer';
+      else newRank = 'Lost Wanderer';
+
+      // Check if leveled up
+      if (newLevel > prev.level) {
+          playSound('success');
+          setLevelUpMessage({ level: newLevel, rank: newRank });
+          setTimeout(() => setLevelUpMessage(null), 5000);
+      }
+
+      return {
+        ...prev,
+        xp: newXp,
+        level: newLevel,
+        rankTitle: newRank
+      };
     });
   };
 
@@ -405,6 +451,7 @@ const App: React.FC = () => {
 
   const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
     if (e) e.preventDefault();
+    (document.activeElement as HTMLElement)?.blur();
     const q = overrideQuery || searchQuery;
     if (!q.trim()) return;
 
@@ -525,6 +572,8 @@ const App: React.FC = () => {
       try {
           const analysis = await getSiteAnalysis(site, activePersona, activeModel, thinkingBudget, activeAesthetic, activeEra);
           setCurrentAnalysis(analysis);
+          awardXP(50);
+          setUserStats(prev => ({ ...prev, analysesRun: prev.analysesRun + 1 }));
       } catch (e: any) {
           setCurrentAnalysis(e.message || "Connection failed. Local analysis unavailable.");
       } finally {
@@ -770,7 +819,13 @@ const App: React.FC = () => {
 
       if (e.key === '/' && !isSidebarOpen && !isInput) {
         e.preventDefault();
-        searchInputRef.current?.focus();
+        const giantSearch = document.getElementById('giant-search-input');
+        const navSearch = document.getElementById('nav-search-input');
+        if (giantSearch) {
+          giantSearch.focus();
+        } else if (navSearch) {
+          navSearch.focus();
+        }
         return;
       }
 
@@ -884,18 +939,28 @@ const App: React.FC = () => {
 
           {/* Search Bar */}
           <div className="flex-1 max-w-md relative group">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none transition-transform group-focus-within:scale-110">
                 <Search size={14} className={`${activeAesthetic.styles.subText} group-focus-within:${activeAesthetic.styles.accent}`} />
               </div>
-              <form onSubmit={(e) => handleSearch(e)} className="w-full">
+              <form onSubmit={(e) => handleSearch(e)} className="w-full relative">
                 <input 
-                  ref={searchInputRef}
+                  id="nav-search-input"
                   type="text" 
-                  placeholder={`Search ${activePersona.name}...`} 
-                  className={`w-full bg-white/5 border border-white/10 ${activeAesthetic.styles.text} text-xs sm:text-sm rounded-full focus:bg-white/10 focus:ring-1 focus:ring-current focus:border-transparent block pl-9 p-1.5 sm:p-2 transition-all outline-none backdrop-blur-md`}
+                  placeholder={searchEngineMode ? "Search web..." : `Command...`}
+                  className={`w-full bg-black/40 border border-white/10 ${activeAesthetic.styles.text} text-xs sm:text-sm rounded-full focus:bg-black/80 focus:ring-1 focus:ring-white/30 focus:border-white/30 block pl-8 sm:pl-10 pr-8 sm:pr-10 py-1.5 sm:py-2 transition-all outline-none backdrop-blur-md placeholder-white/30 shadow-inner hover:bg-black/60 hover:border-white/20`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+                {!searchQuery && (
+                  <div className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center pointer-events-none hidden sm:flex">
+                     <span className={`text-[10px] font-mono border border-white/20 rounded px-1.5 py-0.5 text-white/40 bg-black/50`}>/</span>
+                  </div>
+                )}
+                {searchQuery && (
+                  <button type="submit" className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center">
+                     <span className={`text-[10px] font-mono border border-white/20 rounded px-1.5 py-0.5 text-white/60 hover:text-white hover:border-white hover:bg-white/10 transition-colors`}>↵</span>
+                  </button>
+                )}
               </form>
           </div>
 
@@ -1319,37 +1384,81 @@ const App: React.FC = () => {
             className={`flex flex-col items-center justify-center w-full max-w-7xl px-4 pt-16 z-10 ${searchEngineMode ? 'min-h-[60vh]' : 'min-h-[85vh]'}`}
           >
              {/* Huge Cinematic Hero */}
-             <motion.h1 
-                className={`text-[12vw] sm:text-[10vw] md:text-9xl font-black font-display text-center leading-[0.8] tracking-tighter ${activeAesthetic.styles.text} text-glow uppercase`}
-             >
-                Rabbit<span className={activeAesthetic.styles.accent}>Hole</span>.
-             </motion.h1>
+             <div className="relative group perspective-1000">
+               <motion.div 
+                  initial={{ rotateX: 20, opacity: 0 }}
+                  animate={{ rotateX: 0, opacity: 1 }}
+                  transition={{ duration: 1.2, type: "spring", bounce: 0.5 }}
+                  className="relative z-10"
+               >
+                 <h1 className={`text-[12vw] sm:text-[10vw] md:text-[140px] font-black font-display text-center leading-[0.8] tracking-tighter ${activeAesthetic.styles.text} uppercase mix-blend-screen transition-transform duration-700 group-hover:scale-105 group-hover:-rotate-2`}>
+                   Rabbit<span className={`${activeAesthetic.styles.accent} text-glow inline-block transition-transform duration-700 group-hover:translate-x-2 group-hover:-translate-y-2`}>Hole</span>.
+                 </h1>
+               </motion.div>
+               <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.1)_0%,transparent_70%)] blur-2xl -z-10 group-hover:opacity-100 opacity-50 transition-opacity duration-1000`}></div>
+             </div>
 
              {!searchEngineMode && (
-                 <motion.p className={`mt-8 text-xl md:text-2xl font-light ${activeAesthetic.styles.subText} text-center max-w-2xl mix-blend-screen`}>
-                     Descend into the obscure. An AI-curated index of the internet’s finest buried anomalies from {activeEra.name}.
+                 <motion.p className={`mt-8 text-xl md:text-2xl font-light ${activeAesthetic.styles.subText} text-center max-w-2xl backdrop-blur-md bg-black/10 p-4 rounded-full border border-white/5 shadow-xl`}>
+                     Descend into the obscure. An AI-curated index of the internet’s finest buried anomalies from <span className={`font-bold ${activeAesthetic.styles.text}`}>{activeEra.name}</span>.
                  </motion.p>
              )}
              
              {/* Giant Search Command */}
              <motion.div className="w-full max-w-3xl mt-12 relative z-20">
                 <form onSubmit={(e) => handleSearch(e)} className="relative group">
-                    <div className={`absolute -inset-1 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${activeAesthetic.styles.highlight.replace('text-', 'bg-')}`}></div>
-                    <div className="relative glass-pill flex items-center p-3 pl-6">
-                        <Search size={24} className={`${activeAesthetic.styles.accent} mr-4 animate-pulse`} />
+                    <div className={`absolute -inset-1.5 rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 bg-gradient-to-r ${activeAesthetic.id === 'solar' ? 'from-emerald-600 via-teal-600 to-cyan-600' : 'from-indigo-600 via-purple-600 to-pink-600'}`}></div>
+                    <div className="relative bg-black/40 border border-white/10 hover:border-white/20 backdrop-blur-2xl rounded-3xl flex items-center p-2 pl-6 sm:pl-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all focus-within:bg-black/60 focus-within:border-white/30 focus-within:shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+                        <Search size={24} className={`mr-4 sm:mr-6 transition-all duration-500 opacity-50 group-focus-within:opacity-100 group-focus-within:scale-110 group-focus-within:${activeAesthetic.styles.accent.replace('text-', 'text-')} ${activeAesthetic.styles.text}`} />
                         <input 
-                            ref={searchInputRef}
+                            id="giant-search-input"
                             type="text"
-                            placeholder={searchEngineMode ? 'Search the web...' : `Ask ${activePersona.name} to find...`}
-                            className={`flex-1 bg-transparent border-none text-xl md:text-2xl ${activeAesthetic.styles.text} outline-none placeholder-white/30`}
+                            placeholder={searchEngineMode ? 'Search the known web...' : `Ask ${activePersona.name} to explore...`}
+                            className={`flex-1 bg-transparent border-none text-xl sm:text-2xl md:text-3xl font-light ${activeAesthetic.styles.text} outline-none placeholder-white/20 py-4 sm:py-6 w-full`}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="submit" className={`hidden md:block py-3 px-8 rounded-full font-bold ml-4 transition-transform text-white ${activeAesthetic.id === 'solar' ? 'bg-emerald-600' : activeAesthetic.id === 'brutal' ? 'bg-lime-500 text-black' : 'bg-indigo-600'}`}>
+                        {searchQuery && (
+                          <button type="button" onClick={() => setSearchQuery('')} className="p-2 mr-2 opacity-50 hover:opacity-100 transition-opacity">
+                             <X size={20} className={activeAesthetic.styles.text} />
+                          </button>
+                        )}
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" className={`hidden sm:flex h-14 sm:h-16 px-8 rounded-2xl font-bold items-center justify-center gap-3 transition-all tracking-wide ${activeAesthetic.id === 'solar' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(5,150,105,0.4)]' : activeAesthetic.id === 'brutal' ? 'border-2 border-white hover:bg-white hover:text-black shadow-[4px_4px_0_0_rgba(255,255,255,0.3)] rounded-none text-white' : 'bg-white text-black hover:bg-gray-200 shadow-[0_0_30px_rgba(255,255,255,0.3)]'}`}>
                            {searchEngineMode ? 'Search' : 'Initiate'}
+                           <span className="text-[10px] font-mono opacity-50 border border-current rounded px-1.5 py-0.5 ml-2">↵</span>
+                        </motion.button>
+                        
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="submit" className={`sm:hidden h-12 w-12 mr-2 rounded-xl flex items-center justify-center ${activeAesthetic.id === 'solar' ? 'bg-emerald-600 text-white' : activeAesthetic.id === 'brutal' ? 'border-2 border-white text-white rounded-none' : 'bg-white text-black'}`}>
+                           <Search size={18} />
                         </motion.button>
                     </div>
                 </form>
+             </motion.div>
+
+             {/* Live Ticker / Vibe Stats */}
+             <motion.div 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+               className="w-full max-w-5xl mt-8 overflow-hidden flex flex-col gap-2 relative z-10"
+             >
+                <div className={`text-[10px] uppercase font-mono font-bold tracking-[0.2em] px-4 opacity-50 ${activeAesthetic.styles.text}`}>Live Grid Activity</div>
+                <div className={`w-full overflow-hidden whitespace-nowrap bg-black/20 border-y py-3 ${activeAesthetic.styles.border}`}>
+                    <div className="animate-marquee inline-block text-xs font-mono tracking-widest uppercase opacity-70">
+                       <span className="mx-4">&bull; System Online</span>
+                       <span className="mx-4 text-emerald-400">&bull; {history.length} Nodes Indexed</span>
+                       <span className="mx-4">&bull; Persona: {activePersona.name}</span>
+                       <span className="mx-4 text-pink-400">&bull; Aesthetic: {activeAesthetic.name}</span>
+                       <span className="mx-4">&bull; Engine: {activeModel.name}</span>
+                       <span className="mx-4 text-amber-400">&bull; Rank: {userStats.rankTitle}</span>
+                       
+                       {/* Repeat for seamless loop */}
+                       <span className="mx-4">&bull; System Online</span>
+                       <span className="mx-4 text-emerald-400">&bull; {history.length} Nodes Indexed</span>
+                       <span className="mx-4">&bull; Persona: {activePersona.name}</span>
+                       <span className="mx-4 text-pink-400">&bull; Aesthetic: {activeAesthetic.name}</span>
+                       <span className="mx-4">&bull; Engine: {activeModel.name}</span>
+                       <span className="mx-4 text-amber-400">&bull; Rank: {userStats.rankTitle}</span>
+                    </div>
+                </div>
              </motion.div>
 
              {/* Quick Filters Grid (Replaces old clunky buttons) */}
@@ -1524,7 +1633,7 @@ const App: React.FC = () => {
                              onClick={() => setViewMode('classic')}
                              className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${viewMode === 'classic' ? `${activeAesthetic.styles.accent} bg-white/10` : activeAesthetic.styles.subText}`}
                           >
-                             <Eye size={12} /> Focus
+                             <Archive size={12} /> Card
                           </button>
                           <button 
                              onClick={() => {
@@ -1534,6 +1643,15 @@ const App: React.FC = () => {
                              className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${viewMode === 'graph' ? `${activeAesthetic.styles.accent} bg-white/10` : activeAesthetic.styles.subText}`}
                           >
                              <Map size={12} /> Topology
+                          </button>
+                          <button 
+                             onClick={() => {
+                                 setIsFocusMode(true);
+                                 playSound('blip');
+                             }}
+                             className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}
+                          >
+                             <Focus size={12} /> Zen
                           </button>
                       </div>
                   </div>
@@ -1635,6 +1753,52 @@ const App: React.FC = () => {
             </div>
 
         <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+          
+          {/* User Profile */}
+          <div className={`mb-8 p-5 rounded-2xl border ${activeAesthetic.styles.border} glass-panel relative overflow-hidden group`}>
+             <div className="absolute top-0 right-0 p-3 opacity-10">
+                <BrainCircuit size={40} className={activeAesthetic.styles.text} />
+             </div>
+             <div className="flex items-center gap-4 mb-5 relative z-10">
+                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeAesthetic.styles.bg} border ${activeAesthetic.styles.border} shadow-[0_0_15px_rgba(0,0,0,0.5)] transform -rotate-6 group-hover:rotate-0 transition-all`}>
+                     <User size={24} className={activeAesthetic.styles.text} />
+                 </div>
+                 <div>
+                     <div className={`text-[10px] font-mono font-bold uppercase tracking-[0.2em] ${activeAesthetic.styles.accent}`}>Level {userStats.level}</div>
+                     <div className={`text-lg font-display font-black ${activeAesthetic.styles.text}`}>{userStats.rankTitle}</div>
+                 </div>
+             </div>
+             
+             {/* Progress Bar */}
+             <div className="w-full bg-black/40 rounded-full h-2 mb-2 relative overflow-hidden shadow-inner">
+                <motion.div 
+                   className={`absolute left-0 top-0 h-full ${activeAesthetic.styles.bg} shadow-[0_0_10px_currentColor]`}
+                   initial={{ width: 0 }}
+                   animate={{ width: `${(userStats.xp % 100)}%` }}
+                   transition={{ duration: 1.5, ease: 'easeOut' }}
+                />
+             </div>
+             <div className={`flex justify-between text-[9px] font-mono uppercase tracking-widest ${activeAesthetic.styles.subText} mb-6 relative z-10`}>
+                 <span>{userStats.xp} XP</span>
+                 <span>{(userStats.level * 100)} XP</span>
+             </div>
+
+             <div className="grid grid-cols-3 gap-3 text-center relative z-10">
+                 <div className={`bg-black/20 p-2 sm:p-3 rounded-xl border border-transparent group-hover:${activeAesthetic.styles.border} transition-colors`}>
+                    <div className={`text-[8px] sm:text-[9px] font-mono uppercase opacity-50 ${activeAesthetic.styles.subText} tracking-widest mb-1`}>Nodes</div>
+                    <div className={`text-xl font-display font-black text-glow ${activeAesthetic.styles.text}`}>{userStats.sitesDiscovered}</div>
+                 </div>
+                 <div className={`bg-black/20 p-2 sm:p-3 rounded-xl border border-transparent group-hover:${activeAesthetic.styles.border} transition-colors`}>
+                    <div className={`text-[8px] sm:text-[9px] font-mono uppercase opacity-50 ${activeAesthetic.styles.subText} tracking-widest mb-1`}>Scans</div>
+                    <div className={`text-xl font-display font-black text-glow ${activeAesthetic.styles.text}`}>{userStats.analysesRun}</div>
+                 </div>
+                 <div className={`bg-black/20 p-2 sm:p-3 rounded-xl border border-transparent group-hover:${activeAesthetic.styles.border} transition-colors`}>
+                    <div className={`text-[8px] sm:text-[9px] font-mono uppercase opacity-50 ${activeAesthetic.styles.subText} tracking-widest mb-1`}>Vaults</div>
+                    <div className={`text-xl font-display font-black text-glow ${activeAesthetic.styles.text}`}>{userStats.expeditionsCreated}</div>
+                 </div>
+             </div>
+          </div>
+
           <div className="md:hidden flex flex-col gap-3 mb-8">
                <motion.button 
                   whileHover={{ scale: 1.02 }}
@@ -1717,6 +1881,8 @@ const App: React.FC = () => {
                               tags: []
                           };
                           setExpeditions(prev => [newEx, ...prev]);
+                          awardXP(25);
+                          setUserStats(prev => ({ ...prev, expeditionsCreated: prev.expeditionsCreated + 1 }));
                           playSound('success');
                       }
                    }} 
@@ -1917,6 +2083,39 @@ const App: React.FC = () => {
       )}
       </AnimatePresence>
 
+      {/* Focus Mode Overlay */}
+      <AnimatePresence>
+        {isFocusMode && currentSite && (
+          <motion.div 
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="fixed inset-0 z-[100] bg-black cursor-crosshair"
+          >
+             {/* The Site Viewer */}
+             <iframe src={currentSite.url} className="w-full h-full border-none" title="Focus Mode View" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" referrerPolicy="no-referrer" />
+             
+             {/* Zen Controls Layer */}
+             <div className="absolute top-4 right-4 flex gap-3 z-[101]">
+                 <button 
+                    onClick={() => { setIsFocusMode(false); playSound('blip'); }}
+                    className="p-3 bg-black/50 text-white/50 hover:text-white rounded-full backdrop-blur-md transition-all hover:bg-red-500/50"
+                 >
+                    <X size={20} />
+                 </button>
+             </div>
+             
+             {/* Site Info overlay */}
+             <div className="absolute bottom-6 left-6 max-w-sm pointer-events-none z-[101]">
+                <div className="bg-black/60 backdrop-blur-md p-4 rounded-xl border border-white/10 opacity-70 group-hover:opacity-100 transition-opacity">
+                   <h3 className="text-white font-bold mb-1 text-lg line-clamp-1 font-display">{currentSite.title}</h3>
+                   <div className="text-white/50 text-xs font-mono uppercase truncate">{currentSite.url}</div>
+                </div>
+             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Submit Modal */}
       <AnimatePresence>
       {isSubmitModalOpen && (
@@ -1924,19 +2123,37 @@ const App: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4"
         >
            <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className={`w-full max-w-md ${activeAesthetic.styles.cardBg} border ${activeAesthetic.styles.border} rounded-xl p-6 shadow-2xl relative`}
+              className={`w-full max-w-lg ${activeAesthetic.styles.cardBg} backdrop-blur-2xl border ${activeAesthetic.styles.border} rounded-[2rem] p-8 sm:p-10 shadow-[0_0_80px_rgba(0,0,0,0.8)] relative overflow-hidden`}
            >
-              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsSubmitModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
-                 <X size={20} />
-              </motion.button>
-              <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} mb-2`}>Submit a Node</h2>
-              <p className={`text-sm ${activeAesthetic.styles.subText} mb-6`}>Help expand the weird web. Your submission will be stored locally.</p>
+              <div className={`absolute -top-40 -left-40 w-80 h-80 bg-gradient-to-br ${activeAesthetic.id === 'solar' ? 'from-emerald-500 to-yellow-500' : 'from-indigo-600 to-purple-600'} rounded-full blur-[80px] opacity-20 pointer-events-none`}></div>
+              
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                 <Rabbit size={200} className={activeAesthetic.styles.text} />
+              </div>
+
+              <div className="relative z-10 flex items-center justify-between mb-8">
+                 <div className="flex items-center gap-4">
+                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${activeAesthetic.styles.bg} border ${activeAesthetic.styles.border} shadow-[0_0_20px_currentColor] ${activeAesthetic.styles.accent.replace('text-', 'shadow-')} transform -rotate-3`}>
+                         <NotebookPen size={24} className={activeAesthetic.styles.text} />
+                     </div>
+                     <div>
+                        <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} leading-tight`}>
+                          Submit Node
+                        </h2>
+                        <div className={`text-[10px] font-mono tracking-[0.2em] uppercase ${activeAesthetic.styles.subText}`}>Expand the grid</div>
+                     </div>
+                 </div>
+                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsSubmitModalOpen(false)} className={`w-10 h-10 rounded-full flex items-center justify-center border ${activeAesthetic.styles.border} bg-black/20 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text} hover:bg-white/10 transition-colors`}>
+                    <X size={16} />
+                 </motion.button>
+              </div>
+
               <form onSubmit={(e) => {
                  e.preventDefault();
                  const formData = new FormData(e.currentTarget);
@@ -1950,42 +2167,44 @@ const App: React.FC = () => {
                     submittedAt: new Date().toISOString()
                  };
                  setSubmittedSites(prev => [newSite, ...prev]);
+                 awardXP(100);
+                 setUserStats(prev => ({ ...prev, sitesDiscovered: prev.sitesDiscovered + 1 }));
                  setIsSubmitModalOpen(false);
                  playSound('success');
-              }} className="space-y-4">
+              }} className="space-y-5 relative z-10">
                  
                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
-                    <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Title</label>
-                    <input name="title" required className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} placeholder="Site Title" />
+                    <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${activeAesthetic.styles.subText} mb-2`}>Title</label>
+                    <input name="title" required className={`w-full bg-black/40 border ${activeAesthetic.styles.border} rounded-2xl p-3 px-4 text-sm ${activeAesthetic.styles.text} focus:outline-none focus:bg-black/60 focus:border-${activeAesthetic.styles.accent.replace('text-', '')} transition-all shadow-inner`} placeholder="Site Title" />
                  </motion.div>
                  
                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-                    <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>URL</label>
-                    <input name="url" type="url" required className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} placeholder="https://..." />
+                    <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${activeAesthetic.styles.subText} mb-2`}>URL</label>
+                    <input name="url" type="url" required className={`w-full bg-black/40 border ${activeAesthetic.styles.border} rounded-2xl p-3 px-4 text-sm ${activeAesthetic.styles.text} focus:outline-none focus:bg-black/60 focus:border-${activeAesthetic.styles.accent.replace('text-', '')} transition-all shadow-inner font-mono`} placeholder="https://..." />
                  </motion.div>
 
                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
-                    <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Description</label>
-                    <textarea name="description" required rows={3} className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} placeholder="What makes it weird?" />
+                    <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${activeAesthetic.styles.subText} mb-2`}>Description</label>
+                    <textarea name="description" required rows={3} className={`w-full bg-black/40 border ${activeAesthetic.styles.border} rounded-2xl p-3 px-4 text-sm ${activeAesthetic.styles.text} focus:outline-none focus:bg-black/60 focus:border-${activeAesthetic.styles.accent.replace('text-', '')} transition-all shadow-inner`} placeholder="What makes this node anomalous?" />
                  </motion.div>
 
                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Category</label>
-                        <select name="category" required className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`}>
+                        <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${activeAesthetic.styles.subText} mb-2`}>Classification</label>
+                        <select name="category" required className={`w-full bg-black/40 border ${activeAesthetic.styles.border} rounded-2xl p-3 px-4 text-sm ${activeAesthetic.styles.text} focus:outline-none focus:bg-black/60 transition-all shadow-inner appearance-none`}>
                             {Object.values(Category).filter(c => c !== Category.ALL).map(c => (
-                                <option key={c} value={c}>{c}</option>
+                                <option key={c} value={c} className="bg-black/90">{c}</option>
                             ))}
                         </select>
                     </div>
                     <div>
-                        <label className={`block text-xs font-bold uppercase tracking-wider ${activeAesthetic.styles.subText} mb-1`}>Tags (comma-separated)</label>
-                        <input name="tags" placeholder="weird, web1.0, art" className={`w-full bg-black/30 border ${activeAesthetic.styles.border} rounded p-2 text-sm ${activeAesthetic.styles.text}`} />
+                        <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${activeAesthetic.styles.subText} mb-2`}>Signatures</label>
+                        <input name="tags" placeholder="weird, web1.0, art..." className={`w-full bg-black/40 border ${activeAesthetic.styles.border} rounded-2xl p-3 px-4 text-sm ${activeAesthetic.styles.text} focus:outline-none focus:bg-black/60 focus:border-${activeAesthetic.styles.accent.replace('text-', '')} transition-all shadow-inner font-mono`} />
                     </div>
                  </motion.div>
 
-                 <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`w-full mt-4 ${activeAesthetic.styles.accent.replace('text-', 'bg-')} text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity`}>
-                    Archive Site
+                 <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`w-full mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold tracking-[0.2em] py-4 rounded-2xl shadow-lg shadow-indigo-500/20 transition-all text-xs uppercase flex justify-center items-center gap-2`}>
+                    <Check size={16} /> Broadcast Discovery (+100 XP)
                  </motion.button>
               </form>
               <AnimatePresence>
@@ -2040,25 +2259,31 @@ const App: React.FC = () => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: -20 }}
-              className={`w-full max-w-md ${activeAesthetic.styles.cardBg} border-2 ${activeAesthetic.styles.border} rounded-2xl p-8 shadow-[0_0_50px_rgba(99,102,241,0.2)] relative`} 
+              className={`w-full max-w-lg ${activeAesthetic.styles.cardBg} backdrop-blur-2xl border ${activeAesthetic.styles.border} rounded-[2rem] p-8 sm:p-10 shadow-[0_0_80px_rgba(0,0,0,0.8)] relative overflow-hidden`} 
               onClick={e => e.stopPropagation()}
            >
-              <div className="absolute -top-10 left-1/2 -translate-x-1/2">
-                <div className={`p-4 rounded-full bg-black border-2 ${activeAesthetic.styles.border} shadow-lg shadow-indigo-500/20 animate-pulse`}>
-                    <BrainCircuit size={32} className={activeAesthetic.id === 'solar' ? 'text-yellow-400' : 'text-indigo-400'} />
-                </div>
+              <div className={`absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br ${activeAesthetic.id === 'solar' ? 'from-emerald-500 to-yellow-500' : 'from-indigo-600 to-purple-600'} rounded-full blur-[80px] opacity-20 pointer-events-none`}></div>
+              
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                 <BrainCircuit size={200} className={activeAesthetic.styles.text} />
               </div>
 
-              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsApiKeyModalOpen(false)} className={`absolute top-4 right-4 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text}`}>
-                 <X size={20} />
-              </motion.button>
-
-              <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} mt-4 mb-2 text-center`}>
-                Assistant Configuration
-              </h2>
-              <p className={`text-xs ${activeAesthetic.styles.subText} text-center mb-6 leading-relaxed`}>
-                Enter your Gemini API key below to enable personalized recommendations.
-              </p>
+              <div className="relative z-10 flex items-center justify-between mb-8">
+                 <div className="flex items-center gap-4">
+                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${activeAesthetic.styles.bg} border ${activeAesthetic.styles.border} shadow-[0_0_20px_currentColor] ${activeAesthetic.styles.accent.replace('text-', 'shadow-')} transform -rotate-3`}>
+                         <BrainCircuit size={24} className={activeAesthetic.styles.text} />
+                     </div>
+                     <div>
+                        <h2 className={`text-2xl font-bold font-display ${activeAesthetic.styles.text} leading-tight`}>
+                          Configuration
+                        </h2>
+                        <div className={`text-[10px] font-mono tracking-[0.2em] uppercase ${activeAesthetic.styles.subText}`}>Neural interface setup</div>
+                     </div>
+                 </div>
+                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsApiKeyModalOpen(false)} className={`w-10 h-10 rounded-full flex items-center justify-center border ${activeAesthetic.styles.border} bg-black/20 ${activeAesthetic.styles.subText} hover:${activeAesthetic.styles.text} hover:bg-white/10 transition-colors`}>
+                    <X size={16} />
+                 </motion.button>
+              </div>
 
               <form onSubmit={(e) => {
                   e.preventDefault();
@@ -2069,9 +2294,9 @@ const App: React.FC = () => {
                   playSound('success');
                   // Quick refresh of the app state might be needed or just let the next AI call use the new key
                   setGlobalError(null);
-              }} className="space-y-6">
-                 <div>
-                    <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${activeAesthetic.styles.subText} mb-2`}>
+              }} className="space-y-6 relative z-10">
+                 <div className="group">
+                    <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${activeAesthetic.styles.subText} mb-3 group-focus-within:${activeAesthetic.styles.accent} transition-colors`}>
                         Gemini API Key
                     </label>
                     <div className="relative">
@@ -2080,18 +2305,18 @@ const App: React.FC = () => {
                             type="password"
                             defaultValue={window.localStorage.getItem('RABBIT_HOLE_API_KEY') || ""}
                             placeholder="Enter your API key..."
-                            className={`w-full bg-black/40 border-2 ${activeAesthetic.styles.border} rounded-xl p-3 pr-10 text-sm ${activeAesthetic.styles.text} font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all`}
+                            className={`w-full bg-black/40 border ${activeAesthetic.styles.border} rounded-2xl p-4 pl-5 pr-12 text-sm sm:text-base ${activeAesthetic.styles.text} font-mono focus:outline-none focus:bg-black/60 focus:border-${activeAesthetic.styles.accent.replace('text-', '')} transition-all shadow-inner hover:bg-black/50`}
                         />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50">
-                            <Zap size={16} className={activeAesthetic.styles.accent} />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-50 group-focus-within:opacity-100 transition-opacity">
+                            <Zap size={20} className={activeAesthetic.styles.accent} />
                         </div>
                     </div>
                  </div>
 
-                 <div className={`p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-3`}>
-                    <AlertCircle size={18} className="text-indigo-400 shrink-0 mt-0.5" />
-                    <div className="text-[10px] leading-relaxed text-indigo-200/60 uppercase font-mono">
-                        Note: For AI Studio integration, ensure your key is valid and has "Builder" permissions if applicable. No placeholders allowed.
+                 <div className={`p-5 rounded-2xl bg-black/20 border border-white/5 flex items-start gap-4 backdrop-blur-md`}>
+                    <AlertCircle size={20} className={`${activeAesthetic.styles.accent} shrink-0 mt-0.5`} />
+                    <div className={`text-[11px] leading-relaxed ${activeAesthetic.styles.subText} uppercase font-mono tracking-wide`}>
+                        <span className="font-bold opacity-100">Note:</span> If running in AI Studio, you usually don't need to set this. Only use this to override the default system key.
                     </div>
                  </div>
 
@@ -2099,12 +2324,12 @@ const App: React.FC = () => {
                     type="submit"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-indigo-500/20 transition-all ${activeAesthetic.id === 'solar' ? 'bg-yellow-500 text-black' : 'bg-indigo-600 text-white'}`}
+                    className={`w-full py-4 sm:py-5 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs shadow-lg transition-all flex justify-center items-center gap-3 ${activeAesthetic.id === 'solar' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/50' : 'bg-white hover:bg-gray-200 text-black shadow-black/50'}`}
                  >
-                    Save Configuration
+                    <Check size={16} /> Save Configuration
                  </motion.button>
 
-                 <div className="text-center pt-2">
+                 <div className="text-center pt-4">
                     <button 
                         type="button"
                         onClick={() => {
@@ -2112,7 +2337,7 @@ const App: React.FC = () => {
                             (document.querySelector('input[name="apiKey"]') as HTMLInputElement).value = "";
                             playSound('static');
                         }}
-                        className={`text-[9px] uppercase tracking-widest font-bold ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors`}
+                        className={`text-[9px] uppercase tracking-[0.2em] font-bold ${activeAesthetic.styles.subText} hover:text-red-400 transition-colors border-b border-transparent hover:border-red-400/30 pb-0.5`}
                     >
                         Reset to Environment Defaults
                     </button>
@@ -2254,6 +2479,27 @@ const App: React.FC = () => {
                   </div>
               </motion.div>
           )}
+      </AnimatePresence>
+
+      {/* Level Up Toast */}
+      <AnimatePresence>
+        {levelUpMessage && (
+            <motion.div 
+               initial={{ opacity: 0, y: 50, scale: 0.8 }}
+               animate={{ opacity: 1, y: 0, scale: 1 }}
+               exit={{ opacity: 0, scale: 0.8 }}
+               className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[150] glass-panel border ${activeAesthetic.styles.border} p-4 rounded-2xl shadow-2xl flex items-center gap-4`}
+            >
+               <div className={`w-12 h-12 rounded-full ${activeAesthetic.styles.bg} border-2 border-white flex items-center justify-center`}>
+                  <Sparkles size={24} className={activeAesthetic.styles.text} />
+               </div>
+               <div>
+                  <div className={`text-[10px] font-mono font-bold uppercase tracking-widest ${activeAesthetic.styles.accent}`}>Level Up!</div>
+                  <div className={`text-xl font-display font-black ${activeAesthetic.styles.text}`}>Level {levelUpMessage.level}</div>
+                  <div className={`text-sm ${activeAesthetic.styles.subText}`}>{levelUpMessage.rank}</div>
+               </div>
+            </motion.div>
+        )}
       </AnimatePresence>
 
       {/* System Status Footer */}

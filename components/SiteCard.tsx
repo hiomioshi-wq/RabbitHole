@@ -297,7 +297,7 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className={`relative ${aesthetic.styles.cardBg} ${isBrutal ? 'border-4' : 'border'} ${aesthetic.styles.border} ${isBrutal ? 'rounded-none' : 'rounded-3xl'} ${compactMode ? 'p-4 sm:p-6' : 'p-6 sm:p-10'} shadow-2xl overflow-hidden flex flex-col justify-between transform transition-all duration-500 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)]`}
+        className={`relative ${aesthetic.styles.cardBg} ${!isBrutal && 'backdrop-blur-xl'} ${isBrutal ? 'border-4' : 'border'} ${aesthetic.styles.border} ${isBrutal ? 'rounded-none' : 'rounded-3xl'} ${compactMode ? 'p-4 sm:p-6' : 'p-6 sm:p-10'} shadow-2xl overflow-hidden flex flex-col justify-between transform transition-all duration-500 ease-out md:hover:-translate-y-2 md:hover:shadow-[0_30px_80px_currentColor]`}
       >
         
         {/* Decorative Grid/Watermark */}
@@ -388,30 +388,36 @@ export const SiteCard: React.FC<SiteCardProps> = React.memo(({
           </div>
 
           {/* Vibe Bento Box Area */}
-          <motion.div variants={itemVariants} className="md:col-span-4 flex flex-col gap-3">
+          <motion.div variants={itemVariants} className="md:col-span-4 flex flex-col gap-4">
              {site.designVibe && (
-               <div className={`p-4 ${isBrutal ? 'rounded-none border-2' : 'rounded-2xl glass-panel'} ${aesthetic.styles.border}`}>
-                  <div className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-2`}>
+               <div className={`p-5 ${isBrutal ? 'rounded-none border-4' : 'rounded-[2rem] glass-panel'} ${aesthetic.styles.border} relative overflow-hidden group hover:border-${aesthetic.styles.accent.replace('text-', '')}/50 transition-colors`}>
+                  <div className={`absolute top-0 right-0 p-4 opacity-5 transition-transform group-hover:scale-110 group-hover:rotate-12`}>
+                     <Palette size={60} className={aesthetic.styles.text} />
+                  </div>
+                  <div className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-3`}>
                      <Palette size={14} className={aesthetic.styles.accent} /> Design DNA
                   </div>
-                  <div className={`text-sm sm:text-base font-semibold ${aesthetic.styles.text} leading-tight`}>{site.designVibe}</div>
+                  <div className={`text-sm sm:text-base font-semibold ${aesthetic.styles.text} leading-tight relative z-10`}>{site.designVibe}</div>
                </div>
              )}
              
              {site.vibeScore !== undefined && (
-               <div className={`p-4 flex-1 ${isBrutal ? 'rounded-none border-2' : 'rounded-2xl glass-panel'} ${aesthetic.styles.border} flex flex-col justify-center`}>
-                  <div className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-3`}>
+               <div className={`p-5 flex-1 ${isBrutal ? 'rounded-none border-4' : 'rounded-[2rem] glass-panel'} ${aesthetic.styles.border} flex flex-col justify-center relative overflow-hidden group hover:border-${aesthetic.styles.highlight.replace('text-', '')}/50 transition-colors`}>
+                  <div className={`absolute -bottom-4 -right-4 opacity-5 transition-transform group-hover:scale-110 group-hover:-rotate-12`}>
+                     <Gauge size={80} className={aesthetic.styles.highlight} />
+                  </div>
+                  <div className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest ${aesthetic.styles.subText} mb-3 relative z-10`}>
                     <Gauge size={14} className={aesthetic.styles.highlight} /> Vibe Potency
                   </div>
-                  <div className="flex items-end gap-3">
-                    <div className={`text-4xl font-display font-black text-glow ${aesthetic.styles.text} leading-none`}>{site.vibeScore}%</div>
+                  <div className="flex items-end gap-3 relative z-10">
+                    <div className={`text-5xl font-display font-black text-glow ${aesthetic.styles.text} leading-none`}>{site.vibeScore}%</div>
                   </div>
-                  <div className="w-full h-1.5 bg-black/10 rounded-full mt-4 overflow-hidden relative">
+                  <div className="w-full h-2 bg-black/20 rounded-full mt-4 overflow-hidden relative z-10 shadow-inner">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${site.vibeScore}%` }}
                       transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
-                      className={`absolute inset-y-0 left-0 ${aesthetic.styles.highlight.replace('text-', 'bg-')} shadow-[0_0_10px_currentColor]`} 
+                      className={`absolute inset-y-0 left-0 ${aesthetic.styles.highlight.replace('text-', 'bg-')} shadow-[0_0_15px_currentColor]`} 
                     />
                   </div>
                </div>

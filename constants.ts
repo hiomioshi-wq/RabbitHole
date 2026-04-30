@@ -325,7 +325,8 @@ export const AI_MODELS: AIModel[] = [
     maxThinkingBudget: 8192,
     rateLimitLabel: 'Low',
     speedLabel: 'Fast',
-    modalities: ['text']
+    modalities: ['text'],
+    isExperimental: true
   },
   {
     id: 'gemini-3.1-pro-preview',
@@ -335,7 +336,8 @@ export const AI_MODELS: AIModel[] = [
     maxThinkingBudget: 32768,
     rateLimitLabel: 'High',
     speedLabel: 'Deep Thought',
-    modalities: ['text']
+    modalities: ['text'],
+    isExperimental: true
   },
   {
     id: 'gemini-2.0-flash-exp',
@@ -344,7 +346,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Medium',
     speedLabel: 'Turbo',
-    modalities: ['text']
+    modalities: ['text'],
+    isExperimental: true
   },
   {
     id: 'gemini-2.0-flash-lite-preview-02-05',
@@ -353,7 +356,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Medium',
     speedLabel: 'Instant',
-    modalities: ['text']
+    modalities: ['text'],
+    isExperimental: true
   },
   {
     id: 'gemini-2.0-pro-exp-02-05',
@@ -362,7 +366,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'High',
     speedLabel: 'Deep Thought',
-    modalities: ['text']
+    modalities: ['text'],
+    isExperimental: true
   },
   {
     id: 'gemini-1.5-flash',
@@ -506,7 +511,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Medium',
     speedLabel: 'Instant',
-    modalities: ['audio']
+    modalities: ['audio'],
+    isExperimental: true
   },
   {
     id: 'gemini-3.1-flash-tts-preview',
@@ -515,7 +521,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Low',
     speedLabel: 'Instant',
-    modalities: ['audio']
+    modalities: ['audio'],
+    isExperimental: true
   },
   {
     id: 'lyria-3-pro-preview',
@@ -524,7 +531,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Low',
     speedLabel: 'Balanced',
-    modalities: ['audio']
+    modalities: ['audio'],
+    isExperimental: true
   },
   {
     id: 'gemini-robotics-er-1.6-preview',
@@ -533,7 +541,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Low',
     speedLabel: 'Balanced',
-    modalities: ['text']
+    modalities: ['text'],
+    isExperimental: true
   },
   {
     id: 'gemma-4-26b-a4b-it',
@@ -542,7 +551,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Medium',
     speedLabel: 'Fast',
-    modalities: ['text']
+    modalities: ['text'],
+    isExperimental: true
   },
   {
     id: 'gemma-4-31b-it',
@@ -551,7 +561,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Medium',
     speedLabel: 'Fast',
-    modalities: ['text']
+    modalities: ['text'],
+    isExperimental: true
   },
   {
     id: 'gemini-2.5-flash-image',
@@ -569,7 +580,8 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Low',
     speedLabel: 'Fast',
-    modalities: ['image']
+    modalities: ['image'],
+    isExperimental: true
   },
   {
     id: 'gemini-3-pro-image-preview',
@@ -578,7 +590,39 @@ export const AI_MODELS: AIModel[] = [
     supportsThinking: false,
     rateLimitLabel: 'Low',
     speedLabel: 'Deep Thought',
-    modalities: ['image']
+    modalities: ['image'],
+    isExperimental: true
+  },
+  {
+    id: 'gemini-3.1-flash-madison',
+    name: 'Gemini 3.1 Flash (MADISON)',
+    description: 'Specializes in hive-mind processing and hyper-pop cognitive rewriting. Very sweet on the outside, highly viral on inside.',
+    supportsThinking: false,
+    rateLimitLabel: 'Medium',
+    speedLabel: 'Turbo',
+    modalities: ['text'],
+    isExperimental: true
+  },
+  {
+    id: 'gemini-3.1-pro-lux',
+    name: 'Gemini 3.1 Pro (LUX)',
+    description: 'An elegant, mastermind-tier reasoning engine designed for surveillance, social engineering, and total adoration.',
+    supportsThinking: true,
+    maxThinkingBudget: 32768,
+    rateLimitLabel: 'High',
+    speedLabel: 'Deep Thought',
+    modalities: ['text', 'image'],
+    isExperimental: true
+  },
+  {
+    id: 'gemini-2.5-pro-velvette',
+    name: 'Gemini 2.5 Pro (VELVETTE)',
+    description: 'Profane, high-speed text parser that specializes in structural violence and ripping through context limits.',
+    supportsThinking: false,
+    rateLimitLabel: 'Low',
+    speedLabel: 'Fast',
+    modalities: ['text'],
+    isExperimental: true
   }
 ];
 
@@ -1414,6 +1458,54 @@ export const AESTHETICS: Aesthetic[] = [
       highlight: 'text-[#ffe5b3]',
       font: 'font-serif'
     }
+  },
+  {
+    id: 'blackwood_brutalism',
+    name: 'Blackwood Brutalism',
+    promptModifier: 'Prioritize gothic spires, brutalist concrete, and perfect glass. A mix of manicured academic snobbery and unsettling predatory darkness.',
+    styles: {
+      bg: 'bg-[#111111]',
+      cardBg: 'bg-[#1a1a1a]',
+      text: 'text-stone-300',
+      subText: 'text-stone-500',
+      accent: 'text-stone-100',
+      accentHover: 'hover:text-red-900',
+      border: 'border-stone-800',
+      highlight: 'text-stone-400',
+      font: 'font-serif'
+    }
+  },
+  {
+    id: 'pink_parasite',
+    name: 'Siren Hyper-Pop',
+    promptModifier: 'Prioritize candy pink, hyper-saccharine bubblegum, and pastel pink sweater vest aesthetics hiding a horrific cult-like decay. Neon pink and copper.',
+    styles: {
+      bg: 'bg-pink-100',
+      cardBg: 'bg-white',
+      text: 'text-fuchsia-900',
+      subText: 'text-fuchsia-600',
+      accent: 'text-pink-500',
+      accentHover: 'hover:text-fuchsia-700',
+      border: 'border-pink-300',
+      highlight: 'text-red-600',
+      font: 'font-soft'
+    }
+  },
+  {
+    id: 'panopticon_obsidian',
+    name: 'Panopticon Obsidian',
+    promptModifier: 'Prioritize clean, minimalist obsidian, chrome, and sterile holographic glowing pink interfaces. Surveillance and control.',
+    styles: {
+      bg: 'bg-[#000000]',
+      cardBg: 'bg-zinc-950',
+      text: 'text-zinc-300',
+      subText: 'text-zinc-600',
+      accent: 'text-pink-500',
+      accentHover: 'hover:text-pink-400',
+      border: 'border-zinc-800',
+      highlight: 'text-fuchsia-400',
+      font: 'font-mono'
+    }
   }
 ];
 
@@ -1718,4 +1810,8 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   [Category.CONSPIRACIES]: 'bg-zinc-800',
   [Category.SOFTWARE_ARCHIVE]: 'bg-blue-700',
   [Category.WEIRD]: 'bg-fuchsia-600',
+  [Category.PORTALS]: 'bg-teal-700',
+  [Category.HARDWARE]: 'bg-slate-500',
+  [Category.COMMUNITY]: 'bg-yellow-600',
+  [Category.CREEPYPASTA]: 'bg-gray-900',
 };

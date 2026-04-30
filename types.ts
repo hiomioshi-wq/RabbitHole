@@ -41,7 +41,11 @@ export enum Category {
   FORGOTTEN_MEDIA = 'Forgotten Media',
   CONSPIRACIES = 'Conspiracies & Theories',
   SOFTWARE_ARCHIVE = 'Software Archives',
-  WEIRD = 'Weird Web'
+  WEIRD = 'Weird Web',
+  PORTALS = 'Portals & Indexers',
+  HARDWARE = 'Hardware & Protocols',
+  COMMUNITY = 'Niche Community',
+  CREEPYPASTA = 'Creepypasta & ARGs'
 }
 
 export interface CuratorPersona {
@@ -89,3 +93,12 @@ export interface TimeEra {
 }
 
 export type FetchStatus = 'idle' | 'loading' | 'success' | 'error';
+
+export interface UserStats {
+  xp: number;
+  level: number;
+  rankTitle: string;
+  sitesDiscovered: number;
+  expeditionsCreated: number;
+  analysesRun: number;
+}
